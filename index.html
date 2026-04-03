@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildABox — Step-by-Step Box Plot Builder</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f0f4f8; --card: #fff; --primary: #4361ee;
+      --text: #1a202c; --muted: #718096; --border: #e2e8f0;
+    }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    header { background: linear-gradient(135deg,#4361ee,#7209b7); color:#fff; padding:1rem 1.5rem; display:flex; align-items:center; justify-content:space-between; }
+    header h1 { font-size:1.5rem; font-weight:800; letter-spacing:-0.02em; }
+    header .subtitle { font-size:.78rem; opacity:.85; margin-top:2px; }
+    header .tagline { font-size:.75rem; opacity:.8; text-align:right; max-width:230px; line-height:1.5; }
+
+    .page { max-width:1280px; margin:0 auto; padding:1rem; display:flex; flex-direction:column; gap:1rem; }
+
+    /* Top bar */
+    .top-bar { background:var(--card); border-radius:12px; padding:1rem; box-shadow:0 1px 4px rgba(0,0,0,.08); display:flex; flex-wrap:wrap; align-items:center; gap:1rem; }
+    .dist-row { display:flex; gap:.5rem; flex-wrap:wrap; flex:1; }
+    .dist-card { padding:.45rem .75rem; border:2px solid var(--border); border-radius:8px; cursor:pointer; transition:all .15s; user-select:none; }
+    .dist-card:hover { border-color:#cbd5e0; }
+    .dist-card.active { border-color:var(--dc); background:var(--dc-bg); }
+    .dist-card .dc-name { font-size:.8rem; font-weight:700; color:var(--dc); }
+    .dist-card .dc-shape { font-size:.65rem; color:var(--muted); margin-top:1px; }
+    .n-row { display:flex; align-items:center; gap:.5rem; white-space:nowrap; }
+    .n-row label { font-size:.82rem; font-weight:500; }
+    .n-row input[type=range] { width:110px; accent-color:var(--primary); }
+    .n-row .n-val { font-size:.82rem; color:var(--primary); font-weight:700; min-width:2.5rem; }
+    .btn-gen { padding:.5rem 1.1rem; background:var(--primary); color:#fff; border:none; border-radius:8px; font-size:.85rem; font-weight:700; cursor:pointer; transition:background .15s; }
+    .btn-gen:hover { background:#3451d1; }
+
+    /* Main 2-col */
+    .main { display:grid; grid-template-columns:1fr 280px; gap:1rem; }
+    @media(max-width:820px){ .main{grid-template-columns:1fr} }
+
+    /* Cards */
+    .card { background:var(--card); border-radius:12px; padding:1rem; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+    .card-title { font-size:.7rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.6rem; }
+
+    .left-col { display:flex; flex-direction:column; gap:1rem; }
+    #kdeWrap { height:220px; position:relative; }
+    #kdeCanvas { width:100%!important; height:100%!important; }
+    #boxCanvas { width:100%; display:block; }
+
+    /* Step panel */
+    .step-card { display:flex; flex-direction:column; gap:.75rem; min-height:480px; }
+    .step-dots { display:flex; gap:.4rem; justify-content:center; }
+    .step-dot { width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700; color:var(--muted); transition:all .2s; cursor:default; }
+    .step-dot.done  { background:var(--primary); border-color:var(--primary); color:#fff; }
+    .step-dot.active { background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 0 0 3px rgba(67,97,238,.25); }
+
+    .step-icon { font-size:1.8rem; text-align:center; }
+    .step-title { font-size:1rem; font-weight:800; text-align:center; color:var(--text); }
+    .step-body { font-size:.8rem; color:var(--muted); line-height:1.6; }
+    .step-body strong { color:var(--text); }
+    .step-body em { color:var(--primary); font-style:normal; }
+
+    .step-values { display:flex; flex-direction:column; gap:.4rem; }
+    .step-val-row { display:flex; justify-content:space-between; align-items:baseline; padding:.4rem .6rem; border-radius:6px; background:var(--bg); }
+    .step-val-label { font-size:.73rem; color:var(--muted); }
+    .step-val-val { font-size:.85rem; font-weight:700; font-family:'Courier New', monospace; }
+
+    .step-nav { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:.5rem; border-top:1px solid var(--border); }
+    .btn-nav { padding:.5rem .9rem; border:2px solid var(--border); border-radius:8px; background:#fff; font-size:.82rem; font-weight:700; cursor:pointer; color:var(--text); transition:all .15s; }
+    .btn-nav:hover:not(:disabled) { border-color:var(--primary); color:var(--primary); }
+    .btn-nav:disabled { opacity:.35; cursor:not-allowed; }
+    .btn-nav.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+    .btn-nav.primary:hover:not(:disabled) { background:#3451d1; }
+    .step-counter { font-size:.78rem; color:var(--muted); font-weight:500; }
+
+    .no-data-msg { text-align:center; color:var(--muted); font-size:.85rem; padding:2rem 0; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>BuildABox</h1>
+    <div class="subtitle">Step-by-Step Box Plot Builder</div>
+  </div>
+  <div class="tagline">Pick a distribution, generate data,<br>then build the box plot one step at a time</div>
+</header>
+
+<div class="page">
+  <!-- Top bar: dist picker + N + generate -->
+  <div class="top-bar">
+    <div class="dist-row" id="distPicker"></div>
+    <div class="n-row">
+      <label>N =</label>
+      <input type="range" id="nSlider" min="50" max="1000" step="50" value="200"
+        oninput="document.getElementById('nVal').textContent=this.value">
+      <span class="n-val" id="nVal">200</span>
+      <button class="btn-gen" onclick="handleGenerate()">⚡ Generate</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Left: KDE chart + box plot canvas -->
+    <div class="left-col">
+      <div class="card">
+        <div class="card-title">Distribution &amp; KDE <span id="kdeStepNote" style="color:var(--primary);font-style:normal"></span></div>
+        <div id="kdeWrap"><canvas id="kdeCanvas"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title" id="boxTitle">Box Plot — click Next to begin</div>
+        <canvas id="boxCanvas" height="210"></canvas>
+      </div>
+    </div>
+
+    <!-- Right: step info panel -->
+    <div>
+      <div class="card step-card">
+        <div class="step-dots" id="stepDots"></div>
+        <div class="step-icon" id="stepIcon">📊</div>
+        <div class="step-title" id="stepTitle">Generate Data First</div>
+        <div class="step-body" id="stepBody">
+          <div class="no-data-msg">Choose a distribution and click <strong>Generate</strong> to begin.</div>
+        </div>
+        <div class="step-values" id="stepValues"></div>
+        <div class="step-nav">
+          <button class="btn-nav" id="btnPrev" onclick="handlePrev()" disabled>◄ Back</button>
+          <span class="step-counter" id="stepCounter">—</span>
+          <button class="btn-nav primary" id="btnNext" onclick="handleNext()" disabled>Next ►</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  DISTRIBUTIONS
+// ══════════════════════════════════════════════════════
+
+function gaussRandom(mu = 0, sigma = 1) {
+  const u = Math.max(1e-10, Math.random());
+  return mu + sigma * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random());
+}
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+
+const DISTS = [
+  {
+    id: 'normal', name: 'Normal', shape: 'Bell Curve', color: '#3498db',
+    sample: () => clamp(gaussRandom(50, 14), 0, 100)
+  },
+  {
+    id: 'rskew', name: 'Right-Skewed', shape: 'Long right tail', color: '#e74c3c',
+    sample: () => clamp(100 * (1 - Math.exp(-Math.random() * 2.5)), 0, 100)
+  },
+  {
+    id: 'lskew', name: 'Left-Skewed', shape: 'Long left tail', color: '#27ae60',
+    sample: () => clamp(100 * Math.exp(-Math.random() * 0.9) * Math.random() + 30, 0, 100)
+  },
+  {
+    id: 'bimodal', name: 'Bimodal', shape: 'Two peaks', color: '#9b59b6',
+    sample: () => clamp(Math.random() < 0.5 ? gaussRandom(28, 10) : gaussRandom(72, 10), 0, 100)
+  },
+  {
+    id: 'uniform', name: 'Uniform', shape: 'Flat', color: '#f39c12',
+    sample: () => Math.random() * 90 + 5
+  },
+  {
+    id: 'ushaped', name: 'U-Shaped', shape: 'Extremes heavy', color: '#16a085',
+    sample: () => clamp(Math.random() < 0.48 ? gaussRandom(15, 10) : gaussRandom(85, 10), 0, 100)
+  }
+];
+
+// ══════════════════════════════════════════════════════
+//  DATA + STATS
+// ══════════════════════════════════════════════════════
+
+function seededJitter(i, range) {
+  return (Math.sin(i * 127.1 + 43.2) * 0.5 + 0.5 - 0.5) * 2 * range;
+}
+
+function generateData(n, dist) {
+  const raw = Array.from({ length: n }, dist.sample);
+  const sorted = [...raw].sort((a, b) => a - b);
+  const jitter = raw.map((_, i) => seededJitter(i, 16));
+  const stats = computeBoxStats(sorted);
+  return { raw, sorted, jitter, stats };
+}
+
+function quantile(sorted, p) {
+  const idx = p * (sorted.length - 1);
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+}
+
+function computeBoxStats(sorted) {
+  const q1  = quantile(sorted, 0.25);
+  const med = quantile(sorted, 0.50);
+  const q3  = quantile(sorted, 0.75);
+  const iqr = q3 - q1;
+  const fLo = q1 - 1.5 * iqr;
+  const fHi = q3 + 1.5 * iqr;
+  const actualLo = sorted.find(x => x >= fLo) ?? sorted[0];
+  const actualHi = [...sorted].reverse().find(x => x <= fHi) ?? sorted[sorted.length - 1];
+  const outliers = sorted.filter(x => x < fLo || x > fHi);
+  return { q1, med, q3, iqr, fLo, fHi, actualLo, actualHi, outliers };
+}
+
+function gaussK(u) { return Math.exp(-0.5 * u * u) / Math.sqrt(2 * Math.PI); }
+
+function silverman(arr) {
+  const n = arr.length;
+  let sum = 0, sumSq = 0;
+  for (const x of arr) { sum += x; sumSq += x * x; }
+  const mu = sum / n;
+  const s = Math.sqrt(sumSq / n - mu * mu);
+  const sorted = [...arr].sort((a, b) => a - b);
+  const iqr = (quantile(sorted, 0.75) - quantile(sorted, 0.25)) / 1.34;
+  return 1.06 * (Math.min(s, iqr) || s || 1) * Math.pow(n, -0.2);
+}
+
+function computeKDE(data, bw, nPts = 150) {
+  return Array.from({ length: nPts }, (_, i) => {
+    const x = (i / (nPts - 1)) * 100;
+    const y = data.reduce((s, xi) => s + gaussK((x - xi) / bw), 0) / (data.length * bw);
+    return { x, y };
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  KDE CHART
+// ══════════════════════════════════════════════════════
+
+// Custom plugin: vertical lines
+Chart.register({
+  id: 'vlines',
+  afterDraw(chart) {
+    const lines = chart.options.plugins.vlines?.lines;
+    if (!lines?.length) return;
+    const { ctx, chartArea: ca, scales } = chart;
+    lines.forEach(({ x, color, label, dash }) => {
+      const px = scales.x.getPixelForValue(x);
+      if (px < ca.left || px > ca.right) return;
+      ctx.save();
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      ctx.setLineDash(dash || []);
+      ctx.beginPath(); ctx.moveTo(px, ca.top); ctx.lineTo(px, ca.bottom); ctx.stroke();
+      if (label) {
+        ctx.setLineDash([]); ctx.fillStyle = color;
+        ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center';
+        ctx.fillText(label, px, ca.top + 11);
+      }
+      ctx.restore();
+    });
+  }
+});
+
+let kdeChart = null;
+
+function initKDEChart(kdeData, dist) {
+  if (kdeChart) { kdeChart.destroy(); kdeChart = null; }
+  const ctx = document.getElementById('kdeCanvas').getContext('2d');
+  const rgba = dist.color + '40';
+
+  kdeChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      datasets: [{
+        label: 'KDE',
+        data: kdeData,
+        borderColor: dist.color,
+        borderWidth: 2.5,
+        backgroundColor: rgba,
+        fill: 'origin',
+        pointRadius: 0,
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        vlines: { lines: [] }
+      },
+      scales: {
+        x: {
+          type: 'linear', min: 0, max: 100,
+          title: { display: true, text: 'Value', font: { size: 10 } },
+          ticks: { maxTicksLimit: 11, font: { size: 10 } }
+        },
+        y: {
+          title: { display: true, text: 'Density', font: { size: 10 } },
+          beginAtZero: true,
+          ticks: { font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function updateKDELines(step, stats) {
+  if (!kdeChart) return;
+  const lines = [];
+  if (step >= 1) {
+    lines.push({ x: stats.q1,  color: '#3498db', label: `Q1`, dash: [5, 3] });
+    lines.push({ x: stats.med, color: '#e74c3c', label: `Q2`, dash: [5, 3] });
+    lines.push({ x: stats.q3,  color: '#3498db', label: `Q3`, dash: [5, 3] });
+  }
+  if (step >= 5) {
+    lines.push({ x: stats.actualLo, color: '#a0aec0', label: ``, dash: [3, 4] });
+    lines.push({ x: stats.actualHi, color: '#a0aec0', label: ``, dash: [3, 4] });
+  }
+  const note = step >= 1
+    ? `— Q1 ${stats.q1.toFixed(1)}  Median ${stats.med.toFixed(1)}  Q3 ${stats.q3.toFixed(1)}`
+    : '';
+  document.getElementById('kdeStepNote').textContent = note;
+  kdeChart.options.plugins.vlines.lines = lines;
+  kdeChart.update('none');
+}
+
+// ══════════════════════════════════════════════════════
+//  BOX PLOT CANVAS — CONSTANTS
+// ══════════════════════════════════════════════════════
+
+const DOT_CY    = 44;
+const DOT_RANGE = 16;
+const BOX_CY    = 130;
+const BOX_H     = 34;
+const IQR_Y     = 103;   // IQR annotation y
+const AX_Y      = 168;
+const PAD_L     = 54;
+const PAD_R     = 28;
+
+function makeScale(W) {
+  return v => PAD_L + (v / 100) * (W - PAD_L - PAD_R);
+}
+
+// ── individual drawing functions ─────────────────────
+
+function drawAxis(ctx, W) {
+  const sc = makeScale(W);
+  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(PAD_L, AX_Y); ctx.lineTo(W - PAD_R, AX_Y); ctx.stroke();
+  ctx.fillStyle = '#a0aec0'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+  [0, 20, 40, 60, 80, 100].forEach(v => {
+    const x = sc(v);
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.beginPath(); ctx.moveTo(x, AX_Y); ctx.lineTo(x, AX_Y + 4); ctx.stroke();
+    ctx.fillText(v, x, AX_Y + 14);
+  });
+}
+
+function drawDots(ctx, W, data, stats, step) {
+  const sc = makeScale(W);
+  const { raw, jitter } = data;
+  const { q1, med, q3 } = stats;
+  const MAX = 250;
+  const stride = Math.max(1, Math.floor(raw.length / MAX));
+
+  raw.forEach((v, i) => {
+    if (i % stride !== 0) return;
+    const x = sc(v), y = DOT_CY + jitter[i];
+    let color;
+    if (step >= 1) {
+      color = v < q1  ? 'rgba(52,152,219,.75)'
+            : v < med ? 'rgba(39,174,96,.75)'
+            : v < q3  ? 'rgba(243,156,18,.75)'
+            :            'rgba(231,76,60,.75)';
+    } else {
+      color = 'rgba(160,174,192,.55)';
+    }
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
+  });
+}
+
+function drawQuartileMarkers(ctx, W, stats, p) {
+  const sc = makeScale(W);
+  ctx.globalAlpha = p;
+  const marks = [
+    [stats.q1,  '#3498db', `Q1 = ${stats.q1.toFixed(1)}`],
+    [stats.med, '#e74c3c', `Q2 = ${stats.med.toFixed(1)}`],
+    [stats.q3,  '#3498db', `Q3 = ${stats.q3.toFixed(1)}`],
+  ];
+  marks.forEach(([v, color, label]) => {
+    const x = sc(v);
+    ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(x, DOT_CY - DOT_RANGE - 4); ctx.lineTo(x, BOX_CY + BOX_H / 2 + 4); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = color; ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(label, x, DOT_CY - DOT_RANGE - 8);
+  });
+  ctx.globalAlpha = 1;
+}
+
+function drawMedianLine(ctx, W, stats, p) {
+  const sc = makeScale(W);
+  ctx.globalAlpha = p;
+  const x = sc(stats.med);
+  ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(x, BOX_CY - BOX_H / 2); ctx.lineTo(x, BOX_CY + BOX_H / 2); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+
+function drawBox(ctx, W, stats, p) {
+  const sc = makeScale(W);
+  const { q1, med, q3 } = stats;
+  const medX = sc(med), q1X = sc(q1), q3X = sc(q3);
+  // Grows outward from median
+  const lx = medX - (medX - q1X) * p;
+  const rx = medX + (q3X - medX) * p;
+
+  ctx.fillStyle = 'rgba(67,97,238,.18)';
+  ctx.strokeStyle = '#4361ee'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(lx, BOX_CY - BOX_H / 2, rx - lx, BOX_H, 3);
+  else ctx.rect(lx, BOX_CY - BOX_H / 2, rx - lx, BOX_H);
+  ctx.fill(); ctx.stroke();
+  // Keep median line visible on top
+  ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(medX, BOX_CY - BOX_H / 2); ctx.lineTo(medX, BOX_CY + BOX_H / 2); ctx.stroke();
+}
+
+function drawIQRAnnotation(ctx, W, stats, p) {
+  const sc = makeScale(W);
+  ctx.globalAlpha = p;
+  const { q1, q3, iqr } = stats;
+  const q1X = sc(q1), q3X = sc(q3), midX = (q1X + q3X) / 2;
+  const ay = IQR_Y;
+
+  // Bracket arms
+  ctx.strokeStyle = '#27ae60'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(q1X, ay + 5); ctx.lineTo(q1X, ay);
+  ctx.lineTo(q3X, ay);     ctx.lineTo(q3X, ay + 5);
+  ctx.stroke();
+  // Arrow heads on horizontal line
+  [[q1X, 1], [q3X, -1]].forEach(([x, d]) => {
+    ctx.beginPath();
+    ctx.moveTo(x, ay); ctx.lineTo(x + d * 7, ay - 4);
+    ctx.moveTo(x, ay); ctx.lineTo(x + d * 7, ay + 4);
+    ctx.stroke();
+  });
+  ctx.fillStyle = '#27ae60'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText(`IQR = ${iqr.toFixed(2)}`, midX, ay - 6);
+  ctx.globalAlpha = 1;
+}
+
+function drawWhiskers(ctx, W, stats, p) {
+  const sc = makeScale(W);
+  const { q1, q3, actualLo, actualHi } = stats;
+  const q1X = sc(q1), q3X = sc(q3);
+  const loX = sc(actualLo), hiX = sc(actualHi);
+  // Extend from box edges outward with progress
+  const leftEnd  = q1X - (q1X - loX) * p;
+  const rightEnd = q3X + (hiX - q3X) * p;
+
+  ctx.strokeStyle = '#4361ee'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(q1X, BOX_CY); ctx.lineTo(leftEnd, BOX_CY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(q3X, BOX_CY); ctx.lineTo(rightEnd, BOX_CY); ctx.stroke();
+
+  // Caps + labels fade in at the end
+  const capP = Math.max(0, (p - 0.75) / 0.25);
+  if (capP > 0) {
+    ctx.globalAlpha = capP;
+    const CAP = 13;
+    [loX, hiX].forEach(x => {
+      ctx.strokeStyle = '#4361ee'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x, BOX_CY - CAP / 2); ctx.lineTo(x, BOX_CY + CAP / 2); ctx.stroke();
+    });
+    ctx.fillStyle = '#4361ee'; ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'center';
+    ctx.fillText(actualLo.toFixed(1), loX, AX_Y + 24);
+    ctx.fillText(actualHi.toFixed(1), hiX, AX_Y + 24);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawOutliers(ctx, W, data, stats, p) {
+  const sc = makeScale(W);
+  ctx.globalAlpha = p;
+  ctx.fillStyle = '#e53e3e';
+  stats.outliers.forEach(v => {
+    const x = sc(v);
+    ctx.beginPath(); ctx.arc(x, BOX_CY, 4.5, 0, Math.PI * 2); ctx.fill();
+    // Stroke ring
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(x, BOX_CY, 4.5, 0, Math.PI * 2); ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ── main draw function ───────────────────────────────
+
+function p(current, target) {
+  // progress for element at `target` step, given we're animating to `current`
+  return current > target ? 1 : current === target ? animProgress : 0;
+}
+
+let animProgress = 1;
+let animRAF = null;
+
+function drawBoxPlot(step) {
+  const canvas = document.getElementById('boxCanvas');
+  canvas.width = canvas.offsetWidth || 640;
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  if (!currentData) return;
+  const { stats } = currentData;
+
+  drawAxis(ctx, W);
+  drawDots(ctx, W, currentData, stats, step);
+
+  if (step >= 1) drawQuartileMarkers(ctx, W, stats, p(step, 1));
+  if (step >= 2) drawMedianLine(ctx, W, stats, p(step, 2));
+  if (step >= 3) drawBox(ctx, W, stats, p(step, 3));
+  if (step >= 4) drawIQRAnnotation(ctx, W, stats, p(step, 4));
+  if (step >= 5) drawWhiskers(ctx, W, stats, p(step, 5));
+  if (step >= 6) drawOutliers(ctx, W, currentData, stats, p(step, 6));
+}
+
+// ══════════════════════════════════════════════════════
+//  ANIMATION
+// ══════════════════════════════════════════════════════
+
+function easeInOut(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+
+function animateStep(newStep, instant) {
+  if (animRAF) { cancelAnimationFrame(animRAF); animRAF = null; }
+
+  if (instant) {
+    animProgress = 1;
+    drawBoxPlot(newStep);
+    return;
+  }
+
+  const start = performance.now();
+  const DURATION = 620;
+
+  function tick(now) {
+    animProgress = easeInOut(Math.min(1, (now - start) / DURATION));
+    drawBoxPlot(newStep);
+    if (animProgress < 1) animRAF = requestAnimationFrame(tick);
+    else animRAF = null;
+  }
+  animRAF = requestAnimationFrame(tick);
+}
+
+// ══════════════════════════════════════════════════════
+//  STEP INFO PANEL
+// ══════════════════════════════════════════════════════
+
+const STEP_DATA = (stats, n, distName) => [
+  {
+    icon: '📊', title: 'Raw Data',
+    body: `<strong>${n}</strong> values sampled from a <strong>${distName}</strong> distribution. The KDE above shows their shape. Click <em>Next</em> to start building the box plot.`,
+    values: []
+  },
+  {
+    icon: '📐', title: 'Step 1 — Quartiles',
+    body: `Sort all <strong>${n}</strong> values. Find the three cut points that divide the data into four equal groups (each holding 25% of the data).`,
+    values: [
+      { label: 'Q1 — 25th percentile', val: stats.q1.toFixed(3), color: '#3498db' },
+      { label: 'Q2 — Median (50th)',    val: stats.med.toFixed(3), color: '#e74c3c' },
+      { label: 'Q3 — 75th percentile', val: stats.q3.toFixed(3), color: '#3498db' },
+    ]
+  },
+  {
+    icon: '✂️', title: 'Step 2 — Median',
+    body: `The <strong>median (Q2)</strong> is the first element drawn. It marks the exact centre of the data. Unlike the mean, it is not pulled by extreme values.`,
+    values: [
+      { label: 'Median = Q2', val: stats.med.toFixed(3), color: '#e74c3c' },
+      { label: '50% of data is below', val: '←', color: '#e74c3c' },
+      { label: '50% of data is above', val: '→', color: '#e74c3c' },
+    ]
+  },
+  {
+    icon: '▭', title: 'Step 3 — The Box',
+    body: `The box grows outward from the median to <strong>Q1</strong> (left) and <strong>Q3</strong> (right), enclosing the middle <strong>50%</strong> of all data points.`,
+    values: [
+      { label: 'Left edge = Q1',  val: stats.q1.toFixed(3), color: '#4361ee' },
+      { label: 'Right edge = Q3', val: stats.q3.toFixed(3), color: '#4361ee' },
+    ]
+  },
+  {
+    icon: '↔', title: 'Step 4 — IQR',
+    body: `The <strong>Interquartile Range</strong> measures how spread out the middle 50% is. Whiskers will reach <strong>1.5 × IQR</strong> beyond each box edge — anything further is an outlier.`,
+    values: [
+      { label: 'IQR = Q3 − Q1', val: `${stats.q3.toFixed(1)} − ${stats.q1.toFixed(1)} = ${stats.iqr.toFixed(3)}`, color: '#27ae60' },
+      { label: '1.5 × IQR',     val: (1.5 * stats.iqr).toFixed(3), color: '#27ae60' },
+    ]
+  },
+  {
+    icon: '⊢⊣', title: 'Step 5 — Whiskers',
+    body: `Whiskers extend from the box edges to the <strong>most extreme data point</strong> that still falls within the 1.5×IQR fence. Nothing beyond.`,
+    values: [
+      { label: 'Lower fence',   val: stats.fLo.toFixed(2), color: '#a0aec0' },
+      { label: '← Whisker end', val: stats.actualLo.toFixed(3), color: '#4361ee' },
+      { label: 'Upper fence',   val: stats.fHi.toFixed(2), color: '#a0aec0' },
+      { label: 'Whisker end →', val: stats.actualHi.toFixed(3), color: '#4361ee' },
+    ]
+  },
+  {
+    icon: '•', title: 'Step 6 — Outliers',
+    body: `Values that fall <strong>beyond the whisker fences</strong> are outliers — plotted as individual dots. They may be rare events, or hints of a non-normal tail.`,
+    values: [
+      { label: 'Outlier count',   val: `${stats.outliers.length} point${stats.outliers.length !== 1 ? 's' : ''}`, color: '#e53e3e' },
+      ...(stats.outliers.length > 0 ? [{
+        label: 'Outlier range',
+        val: `${Math.min(...stats.outliers).toFixed(1)} – ${Math.max(...stats.outliers).toFixed(1)}`,
+        color: '#e53e3e'
+      }] : [{ label: 'No outliers found', val: '✓', color: '#27ae60' }])
+    ]
+  }
+];
+
+function updateStepPanel(step, stats, n, distName) {
+  const info = STEP_DATA(stats, n, distName)[step];
+
+  document.getElementById('stepIcon').textContent  = info.icon;
+  document.getElementById('stepTitle').textContent = info.title;
+  document.getElementById('stepBody').innerHTML    = info.body;
+
+  const valEl = document.getElementById('stepValues');
+  valEl.innerHTML = info.values.map(v => `
+    <div class="step-val-row">
+      <span class="step-val-label">${v.label}</span>
+      <span class="step-val-val" style="color:${v.color}">${v.val}</span>
+    </div>`).join('');
+
+  // Dots
+  const dotsEl = document.getElementById('stepDots');
+  dotsEl.innerHTML = Array.from({ length: 7 }, (_, i) => {
+    const cls = i < step ? 'done' : i === step ? 'active' : '';
+    return `<div class="step-dot ${cls}">${i}</div>`;
+  }).join('');
+
+  document.getElementById('stepCounter').textContent = `Step ${step} of 6`;
+  document.getElementById('btnPrev').disabled = step === 0;
+  document.getElementById('btnNext').disabled = step === 6;
+
+  // Box title
+  const titles = ['', 'Quartile Markers', 'Median Line', 'Box (IQR)', 'IQR Annotation', 'Whiskers', 'Outliers'];
+  document.getElementById('boxTitle').textContent =
+    step === 0 ? 'Box Plot — click Next to begin' : `Building: ${titles.slice(1, step + 1).join(' + ')}`;
+}
+
+// ══════════════════════════════════════════════════════
+//  STATE + NAVIGATION
+// ══════════════════════════════════════════════════════
+
+let currentDist = DISTS[0];
+let currentData = null;
+let currentStep = 0;
+
+function handleGenerate() {
+  const n = parseInt(document.getElementById('nSlider').value, 10);
+  currentData = generateData(n, currentDist);
+  currentStep = 0;
+  animProgress = 1;
+
+  const bw  = silverman(currentData.raw);
+  const kde = computeKDE(currentData.raw, bw);
+  initKDEChart(kde, currentDist);
+  updateKDELines(0, currentData.stats);
+  drawBoxPlot(0);
+  updateStepPanel(0, currentData.stats, n, currentDist.name);
+
+  document.getElementById('btnNext').disabled = false;
+  document.getElementById('btnPrev').disabled = true;
+}
+
+function handleNext() {
+  if (!currentData || currentStep >= 6) return;
+  currentStep++;
+  updateKDELines(currentStep, currentData.stats);
+  animateStep(currentStep, false);
+  const n = parseInt(document.getElementById('nSlider').value, 10);
+  updateStepPanel(currentStep, currentData.stats, n, currentDist.name);
+}
+
+function handlePrev() {
+  if (!currentData || currentStep <= 0) return;
+  currentStep--;
+  updateKDELines(currentStep, currentData.stats);
+  animateStep(currentStep, true);   // instant going back
+  const n = parseInt(document.getElementById('nSlider').value, 10);
+  updateStepPanel(currentStep, currentData.stats, n, currentDist.name);
+}
+
+// ══════════════════════════════════════════════════════
+//  DISTRIBUTION PICKER
+// ══════════════════════════════════════════════════════
+
+function hexToRgb(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(','); }
+
+function renderDistPicker() {
+  const el = document.getElementById('distPicker');
+  DISTS.forEach(d => {
+    const card = document.createElement('div');
+    card.className = 'dist-card' + (d === currentDist ? ' active' : '');
+    card.style.setProperty('--dc',    d.color);
+    card.style.setProperty('--dc-bg', `rgba(${hexToRgb(d.color)},.1)`);
+    card.innerHTML = `<div class="dc-name">${d.name}</div><div class="dc-shape">${d.shape}</div>`;
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.dist-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      currentDist = d;
+    });
+    el.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+
+renderDistPicker();
+// Render empty box canvas immediately
+(function () {
+  const canvas = document.getElementById('boxCanvas');
+  canvas.width = canvas.offsetWidth || 640;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#f0f4f8';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#a0aec0'; ctx.font = '13px system-ui'; ctx.textAlign = 'center';
+  ctx.fillText('Generate a sample to begin', canvas.width / 2, canvas.height / 2);
+})();
+</script>
+</body>
+</html>

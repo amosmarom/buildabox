@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,73 +8,153 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #f0f4f8; --card: #fff; --primary: #4361ee;
-      --text: #1a202c; --muted: #718096; --border: #e2e8f0;
+      --bg: #eef2f7; --card: #fff; --primary: #3b5bdb;
+      --text: #1a202c; --muted: #4a5568; --border: #cbd5e0;
+      --shadow: 0 2px 8px rgba(0,0,0,.10);
     }
     body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    html[dir="rtl"] body { font-family: 'Segoe UI', 'Arial', system-ui, sans-serif; }
 
-    header { background: linear-gradient(135deg,#4361ee,#7209b7); color:#fff; padding:1rem 1.5rem; display:flex; align-items:center; justify-content:space-between; }
-    header h1 { font-size:1.5rem; font-weight:800; letter-spacing:-0.02em; }
-    header .subtitle { font-size:.78rem; opacity:.85; margin-top:2px; }
-    header .tagline { font-size:.75rem; opacity:.8; text-align:right; max-width:230px; line-height:1.5; }
+    header {
+      background: linear-gradient(135deg, #3b5bdb, #6741d9);
+      color: #fff; padding: 1rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    }
+    header h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; }
+    .header-subtitle { font-size: .78rem; opacity: .88; margin-top: 2px; }
+    .header-tagline { font-size: .75rem; opacity: .82; text-align: right; max-width: 240px; line-height: 1.55; }
+    html[dir="rtl"] .header-tagline { text-align: left; }
+    .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: .45rem; }
+    html[dir="rtl"] .header-right { align-items: flex-start; }
 
-    .page { max-width:1280px; margin:0 auto; padding:1rem; display:flex; flex-direction:column; gap:1rem; }
+    .lang-btn {
+      padding: .32rem .75rem;
+      background: rgba(255,255,255,.18); color: #fff;
+      border: 1.5px solid rgba(255,255,255,.45);
+      border-radius: 7px; font-size: .78rem; font-weight: 700;
+      cursor: pointer; transition: background .15s; white-space: nowrap;
+      letter-spacing: .01em;
+    }
+    .lang-btn:hover { background: rgba(255,255,255,.32); }
+
+    .page { max-width: 1280px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
 
     /* Top bar */
-    .top-bar { background:var(--card); border-radius:12px; padding:1rem; box-shadow:0 1px 4px rgba(0,0,0,.08); display:flex; flex-wrap:wrap; align-items:center; gap:1rem; }
-    .dist-row { display:flex; gap:.5rem; flex-wrap:wrap; flex:1; }
-    .dist-card { padding:.45rem .75rem; border:2px solid var(--border); border-radius:8px; cursor:pointer; transition:all .15s; user-select:none; }
-    .dist-card:hover { border-color:#cbd5e0; }
-    .dist-card.active { border-color:var(--dc); background:var(--dc-bg); }
-    .dist-card .dc-name { font-size:.8rem; font-weight:700; color:var(--dc); }
-    .dist-card .dc-shape { font-size:.65rem; color:var(--muted); margin-top:1px; }
-    .n-row { display:flex; align-items:center; gap:.5rem; white-space:nowrap; }
-    .n-row label { font-size:.82rem; font-weight:500; }
-    .n-row input[type=range] { width:110px; accent-color:var(--primary); }
-    .n-row .n-val { font-size:.82rem; color:var(--primary); font-weight:700; min-width:2.5rem; }
-    .btn-gen { padding:.5rem 1.1rem; background:var(--primary); color:#fff; border:none; border-radius:8px; font-size:.85rem; font-weight:700; cursor:pointer; transition:background .15s; }
-    .btn-gen:hover { background:#3451d1; }
+    .top-bar {
+      background: var(--card); border-radius: 12px; padding: 1rem;
+      box-shadow: var(--shadow); display: flex; flex-wrap: wrap; align-items: center; gap: .85rem;
+    }
+    .dist-row { display: flex; gap: .45rem; flex-wrap: wrap; flex: 1; }
+
+    .dist-card {
+      padding: .5rem .85rem; border: 2px solid var(--border);
+      border-radius: 9px; cursor: pointer; transition: all .15s; user-select: none;
+    }
+    .dist-card:hover { border-color: #a0aec0; background: #f7faff; }
+    .dist-card.active {
+      border-color: var(--dc); background: var(--dc-bg);
+      box-shadow: 0 0 0 3px var(--dc-bg);
+    }
+    .dist-card .dc-name { font-size: .83rem; font-weight: 700; color: var(--dc); }
+    .dist-card .dc-shape { font-size: .69rem; color: var(--muted); margin-top: 2px; font-weight: 500; }
+
+    .n-row { display: flex; align-items: center; gap: .5rem; white-space: nowrap; }
+    .n-row label { font-size: .84rem; font-weight: 600; color: var(--text); }
+    .n-row input[type=range] { width: 110px; accent-color: var(--primary); }
+    .n-row .n-val { font-size: .84rem; color: var(--primary); font-weight: 700; min-width: 2.5rem; }
 
     /* Main 2-col */
-    .main { display:grid; grid-template-columns:1fr 280px; gap:1rem; }
-    @media(max-width:820px){ .main{grid-template-columns:1fr} }
+    .main { display: grid; grid-template-columns: 1fr 295px; gap: 1rem; }
+    @media(max-width: 820px){ .main { grid-template-columns: 1fr } }
 
     /* Cards */
-    .card { background:var(--card); border-radius:12px; padding:1rem; box-shadow:0 1px 4px rgba(0,0,0,.08); }
-    .card-title { font-size:.7rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-bottom:.6rem; }
+    .card { background: var(--card); border-radius: 12px; padding: 1rem; box-shadow: var(--shadow); }
+    .card-title {
+      font-size: .72rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .07em; margin-bottom: .65rem;
+    }
 
-    .left-col { display:flex; flex-direction:column; gap:1rem; }
-    #kdeWrap { height:220px; position:relative; }
-    #kdeCanvas { width:100%!important; height:100%!important; }
-    #boxCanvas { width:100%; display:block; }
+    .left-col { display: flex; flex-direction: column; gap: 1rem; }
+    #kdeWrap { height: 220px; position: relative; }
+    #kdeCanvas { width: 100%!important; height: 100%!important; }
+    #boxCanvas { width: 100%; display: block; }
 
     /* Step panel */
-    .step-card { display:flex; flex-direction:column; gap:.75rem; min-height:480px; }
-    .step-dots { display:flex; gap:.4rem; justify-content:center; }
-    .step-dot { width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:.65rem; font-weight:700; color:var(--muted); transition:all .2s; cursor:default; }
-    .step-dot.done  { background:var(--primary); border-color:var(--primary); color:#fff; }
-    .step-dot.active { background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 0 0 3px rgba(67,97,238,.25); }
+    .step-card { display: flex; flex-direction: column; gap: .75rem; min-height: 490px; }
+    .step-dots { display: flex; gap: .4rem; justify-content: center; }
+    .step-dot {
+      width: 23px; height: 23px; border-radius: 50%;
+      border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+      font-size: .65rem; font-weight: 700; color: var(--muted); transition: all .2s; cursor: default;
+    }
+    .step-dot.done  { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .step-dot.active {
+      background: var(--primary); border-color: var(--primary); color: #fff;
+      box-shadow: 0 0 0 3px rgba(59,91,219,.22);
+    }
 
-    .step-icon { font-size:1.8rem; text-align:center; }
-    .step-title { font-size:1rem; font-weight:800; text-align:center; color:var(--text); }
-    .step-body { font-size:.8rem; color:var(--muted); line-height:1.6; }
-    .step-body strong { color:var(--text); }
-    .step-body em { color:var(--primary); font-style:normal; }
+    .step-icon { font-size: 1.85rem; text-align: center; }
+    .step-title { font-size: 1rem; font-weight: 800; text-align: center; color: var(--text); line-height: 1.3; }
+    .step-body { font-size: .82rem; color: var(--muted); line-height: 1.68; }
+    .step-body strong { color: var(--text); font-weight: 700; }
+    .step-body em { color: var(--primary); font-style: normal; font-weight: 600; }
 
-    .step-values { display:flex; flex-direction:column; gap:.4rem; }
-    .step-val-row { display:flex; justify-content:space-between; align-items:baseline; padding:.4rem .6rem; border-radius:6px; background:var(--bg); }
-    .step-val-label { font-size:.73rem; color:var(--muted); }
-    .step-val-val { font-size:.85rem; font-weight:700; font-family:'Courier New', monospace; }
+    .step-values { display: flex; flex-direction: column; gap: .38rem; }
+    .step-val-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: .45rem .7rem; border-radius: 7px;
+      background: #f5f7fb; border: 1px solid #dde3ef;
+    }
+    .step-val-label { font-size: .74rem; color: var(--muted); font-weight: 500; }
+    .step-val-val { font-size: .86rem; font-weight: 700; font-family: 'Courier New', monospace; }
 
-    .step-nav { display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:.5rem; border-top:1px solid var(--border); }
-    .btn-nav { padding:.5rem .9rem; border:2px solid var(--border); border-radius:8px; background:#fff; font-size:.82rem; font-weight:700; cursor:pointer; color:var(--text); transition:all .15s; }
-    .btn-nav:hover:not(:disabled) { border-color:var(--primary); color:var(--primary); }
-    .btn-nav:disabled { opacity:.35; cursor:not-allowed; }
-    .btn-nav.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
-    .btn-nav.primary:hover:not(:disabled) { background:#3451d1; }
-    .step-counter { font-size:.78rem; color:var(--muted); font-weight:500; }
+    .step-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: auto; padding-top: .55rem; border-top: 1px solid var(--border);
+    }
+    .btn-nav {
+      padding: .48rem .9rem; border: 2px solid var(--border); border-radius: 8px;
+      background: #fff; font-size: .82rem; font-weight: 700; cursor: pointer;
+      color: var(--text); transition: all .15s;
+    }
+    .btn-nav:hover:not(:disabled) { border-color: var(--primary); color: var(--primary); background: #f0f4ff; }
+    .btn-nav:disabled { opacity: .35; cursor: not-allowed; }
+    .btn-nav.primary {
+      background: var(--primary); border-color: var(--primary); color: #fff;
+      box-shadow: 0 2px 6px rgba(59,91,219,.3);
+    }
+    .btn-nav.primary:hover:not(:disabled) { background: #2f4cc4; }
+    .step-counter { font-size: .78rem; color: var(--muted); font-weight: 600; }
 
-    .no-data-msg { text-align:center; color:var(--muted); font-size:.85rem; padding:2rem 0; }
+    .no-data-msg { text-align: center; color: var(--muted); font-size: .86rem; padding: 2rem 0; line-height: 1.72; }
+    .no-data-msg strong { color: var(--text); }
+
+    /* File loading */
+    .file-row { display: flex; align-items: center; gap: .5rem; }
+    .load-btn {
+      padding: .46rem .95rem; background: #fff; color: var(--primary);
+      border: 2px solid var(--primary); border-radius: 8px;
+      font-size: .82rem; font-weight: 700; cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .load-btn:hover { background: #f0f4ff; }
+    .dataset-tag {
+      display: none; align-items: center; gap: .5rem; flex-wrap: wrap;
+      padding: .38rem .75rem; background: #eef2ff; border: 1.5px solid var(--primary);
+      border-radius: 8px; font-size: .78rem; white-space: nowrap;
+    }
+    #datasetName { font-weight: 600; color: var(--text); }
+    .col-picker-wrap { display: flex; align-items: center; gap: .3rem; }
+    #colLabel { color: var(--muted); font-weight: 500; }
+    .col-select {
+      font-size: .78rem; border: 1px solid var(--border); border-radius: 5px;
+      padding: .18rem .4rem; background: #fff; color: var(--text); cursor: pointer;
+    }
+    .clear-btn {
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      font-size: .9rem; font-weight: 700; padding: 0 .1rem; line-height: 1; transition: color .15s;
+    }
+    .clear-btn:hover { color: #c0392b; }
+    .dist-row.dimmed, .n-row.dimmed { opacity: .4; pointer-events: none; user-select: none; }
   </style>
 </head>
 <body>
@@ -82,52 +162,61 @@
 <header>
   <div>
     <h1>BuildABox</h1>
-    <div class="subtitle">Step-by-Step Box Plot Builder</div>
+    <div class="header-subtitle" id="hdrSubtitle"></div>
   </div>
-  <div class="tagline">Pick a distribution, generate data,<br>then build the box plot one step at a time</div>
+  <div class="header-right">
+    <button class="lang-btn" id="langBtn" onclick="toggleLang()"></button>
+    <div class="header-tagline" id="hdrTagline"></div>
+  </div>
 </header>
 
 <div class="page">
-  <!-- Top bar: dist picker + N + generate -->
   <div class="top-bar">
     <div class="dist-row" id="distPicker"></div>
     <div class="n-row">
-      <label>N =</label>
+      <label id="nLabel"></label>
       <input type="range" id="nSlider" min="50" max="1000" step="50" value="200"
-        oninput="document.getElementById('nVal').textContent=this.value">
+        oninput="document.getElementById('nVal').textContent=this.value"
+        onchange="handleGenerate()">
       <span class="n-val" id="nVal">200</span>
-      <button class="btn-gen" onclick="handleGenerate()">⚡ Generate</button>
+    </div>
+    <div class="file-row">
+      <button class="load-btn" id="loadBtn" onclick="document.getElementById('csvInput').click()"></button>
+      <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="loadCSV(this)">
+      <div class="dataset-tag" id="datasetTag">
+        <span id="datasetName"></span>
+        <span class="col-picker-wrap" id="colPickerWrap">
+          <span id="colLabel"></span>
+          <select class="col-select" id="colSelect" onchange="setCol(this.value)"></select>
+        </span>
+        <button class="clear-btn" onclick="clearDataset()">✕</button>
+      </div>
     </div>
   </div>
 
-  <!-- Main -->
   <div class="main">
-    <!-- Left: KDE chart + box plot canvas -->
     <div class="left-col">
       <div class="card">
-        <div class="card-title">Distribution &amp; KDE <span id="kdeStepNote" style="color:var(--primary);font-style:normal"></span></div>
+        <div class="card-title"><span id="kdeTitleText"></span><span id="kdeStepNote" style="color:var(--primary);font-style:normal;margin-inline-start:.3rem"></span></div>
         <div id="kdeWrap"><canvas id="kdeCanvas"></canvas></div>
       </div>
       <div class="card">
-        <div class="card-title" id="boxTitle">Box Plot — click Next to begin</div>
+        <div class="card-title" id="boxTitle"></div>
         <canvas id="boxCanvas" height="210"></canvas>
       </div>
     </div>
 
-    <!-- Right: step info panel -->
     <div>
       <div class="card step-card">
         <div class="step-dots" id="stepDots"></div>
         <div class="step-icon" id="stepIcon">📊</div>
-        <div class="step-title" id="stepTitle">Generate Data First</div>
-        <div class="step-body" id="stepBody">
-          <div class="no-data-msg">Choose a distribution and click <strong>Generate</strong> to begin.</div>
-        </div>
+        <div class="step-title" id="stepTitle"></div>
+        <div class="step-body" id="stepBody"></div>
         <div class="step-values" id="stepValues"></div>
         <div class="step-nav">
-          <button class="btn-nav" id="btnPrev" onclick="handlePrev()" disabled>◄ Back</button>
+          <button class="btn-nav" id="btnPrev" onclick="handlePrev()" disabled></button>
           <span class="step-counter" id="stepCounter">—</span>
-          <button class="btn-nav primary" id="btnNext" onclick="handleNext()" disabled>Next ►</button>
+          <button class="btn-nav primary" id="btnNext" onclick="handleNext()" disabled></button>
         </div>
       </div>
     </div>
@@ -135,6 +224,193 @@
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════
+//  TRANSLATIONS
+// ══════════════════════════════════════════════════════
+
+const T = {
+  en: {
+    subtitle:     'Step-by-Step Box Plot Builder',
+    tagline:      'Pick a distribution, generate data,\nthen build the box plot one step at a time',
+    nLabel:       'N =',
+    btnLoad:      '📂 Load CSV',
+    colLabel:     'Column:',
+    rows:         'rows',
+    kdeTitle:     'Distribution & KDE',
+    boxInit:      'Box Plot — click Next to begin',
+    noData:       'Choose a distribution and click <strong>Generate</strong> to begin.',
+    stepInitTitle:'Generate Data First',
+    stepInitIcon: '📊',
+    btnBack:      '◄ Back',
+    btnNext:      'Next ►',
+    stepOf:       s => `Step ${s} of 6`,
+    buildPrefix:  'Building: ',
+    langToggle:   'עברית',
+    buildTitles:  ['', 'Quartile Markers', 'Median Line', 'Box (IQR)', 'IQR Annotation', 'Whiskers', 'Outliers'],
+    dists: {
+      normal:  ['Normal',       'Bell Curve'],
+      rskew:   ['Right-Skewed', 'Long right tail'],
+      lskew:   ['Left-Skewed',  'Long left tail'],
+      bimodal: ['Bimodal',      'Two peaks'],
+      uniform: ['Uniform',      'Flat'],
+      ushaped: ['U-Shaped',     'Extremes heavy'],
+    },
+    steps: (stats, n, distName) => [
+      {
+        icon: '📊', title: 'Raw Data',
+        body: `<strong>${n}</strong> values sampled from a <strong>${distName}</strong> distribution. The KDE above shows their shape. Click <em>Next</em> to start building the box plot.`,
+        values: []
+      },
+      {
+        icon: '📐', title: 'Step 1 — Quartiles',
+        body: `Sort all <strong>${n}</strong> values. Find the three cut points that divide the data into four equal groups (each holding 25% of the data).`,
+        values: [
+          { label: 'Q1 — 25th percentile', val: stats.q1.toFixed(3), color: '#2980b9' },
+          { label: 'Q2 — Median (50th)',    val: stats.med.toFixed(3), color: '#c0392b' },
+          { label: 'Q3 — 75th percentile', val: stats.q3.toFixed(3), color: '#2980b9' },
+        ]
+      },
+      {
+        icon: '✂️', title: 'Step 2 — Median',
+        body: `The <strong>median (Q2)</strong> is the first element drawn. It marks the exact centre of the data. Unlike the mean, it is not pulled by extreme values.`,
+        values: [
+          { label: 'Median = Q2',          val: stats.med.toFixed(3), color: '#c0392b' },
+          { label: '50% of data is below', val: '←',                  color: '#c0392b' },
+          { label: '50% of data is above', val: '→',                  color: '#c0392b' },
+        ]
+      },
+      {
+        icon: '▭', title: 'Step 3 — The Box',
+        body: `The box grows outward from the median to <strong>Q1</strong> (left) and <strong>Q3</strong> (right), enclosing the middle <strong>50%</strong> of all data points.`,
+        values: [
+          { label: 'Left edge = Q1',  val: stats.q1.toFixed(3), color: '#3b5bdb' },
+          { label: 'Right edge = Q3', val: stats.q3.toFixed(3), color: '#3b5bdb' },
+        ]
+      },
+      {
+        icon: '↔', title: 'Step 4 — IQR',
+        body: `The <strong>Interquartile Range</strong> measures how spread out the middle 50% is. Whiskers reach <strong>1.5 × IQR</strong> beyond each box edge — anything further is an outlier.`,
+        values: [
+          { label: 'IQR = Q3 − Q1', val: `${stats.q3.toFixed(1)} − ${stats.q1.toFixed(1)} = ${stats.iqr.toFixed(3)}`, color: '#1a7a4a' },
+          { label: '1.5 × IQR',     val: (1.5 * stats.iqr).toFixed(3), color: '#1a7a4a' },
+        ]
+      },
+      {
+        icon: '⊢⊣', title: 'Step 5 — Whiskers',
+        body: `Whiskers extend from the box edges to the <strong>most extreme data point</strong> still within the 1.5×IQR fence. Nothing beyond.`,
+        values: [
+          { label: 'Lower fence',    val: stats.fLo.toFixed(2),      color: '#718096' },
+          { label: '← Whisker end', val: stats.actualLo.toFixed(3),  color: '#3b5bdb' },
+          { label: 'Upper fence',    val: stats.fHi.toFixed(2),      color: '#718096' },
+          { label: 'Whisker end →', val: stats.actualHi.toFixed(3),  color: '#3b5bdb' },
+        ]
+      },
+      {
+        icon: '•', title: 'Step 6 — Outliers',
+        body: `Values <strong>beyond the whisker fences</strong> are outliers — plotted as individual dots. They may be rare events or hints of a non-normal tail.`,
+        values: [
+          { label: 'Outlier count', val: `${stats.outliers.length} point${stats.outliers.length !== 1 ? 's' : ''}`, color: '#c0392b' },
+          ...(stats.outliers.length > 0
+            ? [{ label: 'Outlier range', val: `${Math.min(...stats.outliers).toFixed(1)} – ${Math.max(...stats.outliers).toFixed(1)}`, color: '#c0392b' }]
+            : [{ label: 'No outliers found', val: '✓', color: '#1a7a4a' }])
+        ]
+      }
+    ]
+  },
+
+  he: {
+    subtitle:     'בנה תרשים קופסה שלב אחר שלב',
+    tagline:      'בחר התפלגות, צור נתונים,\nואז בנה את תרשים הקופסה שלב אחר שלב',
+    nLabel:       ':N',
+    btnLoad:      '📂 טען CSV',
+    colLabel:     ':עמודה',
+    rows:         'שורות',
+    kdeTitle:     'התפלגות ו-KDE',
+    boxInit:      'תרשים קופסה — לחץ הבא להתחלה',
+    noData:       'בחר התפלגות ולחץ <strong>צור נתונים</strong> להתחלה.',
+    stepInitTitle:'צור נתונים תחילה',
+    stepInitIcon: '📊',
+    btnBack:      'חזור',
+    btnNext:      'הבא',
+    stepOf:       s => `שלב ${s} מתוך 6`,
+    buildPrefix:  'בבנייה: ',
+    langToggle:   'English',
+    buildTitles:  ['', 'סימוני רביעונים', 'קו חציון', 'קופסה (IQR)', 'הערת IQR', 'שפמים', 'ערכים חריגים'],
+    dists: {
+      normal:  ['נורמלי',     'עקומת פעמון'],
+      rskew:   ['מוטה ימינה', 'זנב ארוך ימינה'],
+      lskew:   ['מוטה שמאלה','זנב ארוך שמאלה'],
+      bimodal: ['דו-שיאי',    'שני שיאים'],
+      uniform: ['אחיד',       'שטוח'],
+      ushaped: ['צורת U',     'קצוות כבדים'],
+    },
+    steps: (stats, n, distName) => [
+      {
+        icon: '📊', title: 'נתונים גולמיים',
+        body: `<strong>${n}</strong> ערכים מהתפלגות <strong>${distName}</strong>. ה-KDE למעלה מציג את צורתה. לחץ <em>הבא</em> להתחלת בניית תרשים הקופסה.`,
+        values: []
+      },
+      {
+        icon: '📐', title: 'שלב 1 — רביעונים',
+        body: `מיין את כל <strong>${n}</strong> הערכים. מצא שלוש נקודות חיתוך המחלקות את הנתונים לארבע קבוצות שוות (כל אחת מכילה 25% מהנתונים).`,
+        values: [
+          { label: 'Q1 — אחוזון 25',          val: stats.q1.toFixed(3), color: '#2980b9' },
+          { label: 'Q2 — חציון (אחוזון 50)', val: stats.med.toFixed(3), color: '#c0392b' },
+          { label: 'Q3 — אחוזון 75',          val: stats.q3.toFixed(3), color: '#2980b9' },
+        ]
+      },
+      {
+        icon: '✂️', title: 'שלב 2 — חציון',
+        body: `ה<strong>חציון (Q2)</strong> הוא האיבר הראשון המצויר. הוא מסמן את מרכז הנתונים המדויק. בניגוד לממוצע, אינו מושפע מערכים קיצוניים.`,
+        values: [
+          { label: 'חציון = Q2',          val: stats.med.toFixed(3), color: '#c0392b' },
+          { label: '50% מהנתונים מתחת', val: '←',                   color: '#c0392b' },
+          { label: '50% מהנתונים מעל',  val: '→',                   color: '#c0392b' },
+        ]
+      },
+      {
+        icon: '▭', title: 'שלב 3 — הקופסה',
+        body: `הקופסה גדלה מהחציון לכיוון <strong>Q1</strong> (שמאל) ו-<strong>Q3</strong> (ימין), וכוללת את <strong>50%</strong> האמצעיים של הנתונים.`,
+        values: [
+          { label: 'קצה שמאל = Q1', val: stats.q1.toFixed(3), color: '#3b5bdb' },
+          { label: 'קצה ימין = Q3', val: stats.q3.toFixed(3), color: '#3b5bdb' },
+        ]
+      },
+      {
+        icon: '↔', title: 'שלב 4 — טווח בין-רביעוני',
+        body: `ה<strong>טווח הבין-רביעוני (IQR)</strong> מודד את פיזור 50% האמצעיים. השפמים מגיעים עד <strong>1.5 × IQR</strong> מעבר לכל קצה — מה שמעבר לכך הוא ערך חריג.`,
+        values: [
+          { label: 'IQR = Q3 − Q1', val: `${stats.q3.toFixed(1)} − ${stats.q1.toFixed(1)} = ${stats.iqr.toFixed(3)}`, color: '#1a7a4a' },
+          { label: '1.5 × IQR',     val: (1.5 * stats.iqr).toFixed(3), color: '#1a7a4a' },
+        ]
+      },
+      {
+        icon: '⊢⊣', title: 'שלב 5 — שפמים',
+        body: `השפמים מתרחבים מקצות הקופסה עד <strong>נקודת הנתונים הקיצונית ביותר</strong> הנמצאת בגדר 1.5×IQR. לא מעבר לכך.`,
+        values: [
+          { label: 'גדר תחתונה',  val: stats.fLo.toFixed(2),     color: '#718096' },
+          { label: 'קצה שפם ←',  val: stats.actualLo.toFixed(3), color: '#3b5bdb' },
+          { label: 'גדר עליונה',  val: stats.fHi.toFixed(2),     color: '#718096' },
+          { label: '← קצה שפם', val: stats.actualHi.toFixed(3), color: '#3b5bdb' },
+        ]
+      },
+      {
+        icon: '•', title: 'שלב 6 — ערכים חריגים',
+        body: `ערכים <strong>מעבר לגדרות השפם</strong> הם ערכים חריגים — מתוארים כנקודות בודדות. הם עשויים להיות אירועים נדירים או רמזים לזנב לא-נורמלי.`,
+        values: [
+          { label: 'מספר ערכים חריגים', val: `${stats.outliers.length} נקודות`, color: '#c0392b' },
+          ...(stats.outliers.length > 0
+            ? [{ label: 'טווח ערכים חריגים', val: `${Math.min(...stats.outliers).toFixed(1)} – ${Math.max(...stats.outliers).toFixed(1)}`, color: '#c0392b' }]
+            : [{ label: 'אין ערכים חריגים', val: '✓', color: '#1a7a4a' }])
+        ]
+      }
+    ]
+  }
+};
+
+let lang = 'en';
+function tx() { return T[lang]; }
+
 // ══════════════════════════════════════════════════════
 //  DISTRIBUTIONS
 // ══════════════════════════════════════════════════════
@@ -146,30 +422,12 @@ function gaussRandom(mu = 0, sigma = 1) {
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 
 const DISTS = [
-  {
-    id: 'normal', name: 'Normal', shape: 'Bell Curve', color: '#3498db',
-    sample: () => clamp(gaussRandom(50, 14), 0, 100)
-  },
-  {
-    id: 'rskew', name: 'Right-Skewed', shape: 'Long right tail', color: '#e74c3c',
-    sample: () => clamp(100 * (1 - Math.exp(-Math.random() * 2.5)), 0, 100)
-  },
-  {
-    id: 'lskew', name: 'Left-Skewed', shape: 'Long left tail', color: '#27ae60',
-    sample: () => clamp(100 * Math.exp(-Math.random() * 0.9) * Math.random() + 30, 0, 100)
-  },
-  {
-    id: 'bimodal', name: 'Bimodal', shape: 'Two peaks', color: '#9b59b6',
-    sample: () => clamp(Math.random() < 0.5 ? gaussRandom(28, 10) : gaussRandom(72, 10), 0, 100)
-  },
-  {
-    id: 'uniform', name: 'Uniform', shape: 'Flat', color: '#f39c12',
-    sample: () => Math.random() * 90 + 5
-  },
-  {
-    id: 'ushaped', name: 'U-Shaped', shape: 'Extremes heavy', color: '#16a085',
-    sample: () => clamp(Math.random() < 0.48 ? gaussRandom(15, 10) : gaussRandom(85, 10), 0, 100)
-  }
+  { id: 'normal',  color: '#2980b9', sample: () => clamp(gaussRandom(50, 14), 0, 100) },
+  { id: 'rskew',   color: '#c0392b', sample: () => clamp(100 * (1 - Math.exp(-Math.random() * 2.5)), 0, 100) },
+  { id: 'lskew',   color: '#1a7a4a', sample: () => clamp(100 * Math.exp(-Math.random() * 0.9) * Math.random() + 30, 0, 100) },
+  { id: 'bimodal', color: '#7c3aed', sample: () => clamp(Math.random() < 0.5 ? gaussRandom(28, 10) : gaussRandom(72, 10), 0, 100) },
+  { id: 'uniform', color: '#b45309', sample: () => Math.random() * 90 + 5 },
+  { id: 'ushaped', color: '#0e7490', sample: () => clamp(Math.random() < 0.48 ? gaussRandom(15, 10) : gaussRandom(85, 10), 0, 100) }
 ];
 
 // ══════════════════════════════════════════════════════
@@ -181,10 +439,10 @@ function seededJitter(i, range) {
 }
 
 function generateData(n, dist) {
-  const raw = Array.from({ length: n }, dist.sample);
+  const raw    = Array.from({ length: n }, dist.sample);
   const sorted = [...raw].sort((a, b) => a - b);
   const jitter = raw.map((_, i) => seededJitter(i, 16));
-  const stats = computeBoxStats(sorted);
+  const stats  = computeBoxStats(sorted);
   return { raw, sorted, jitter, stats };
 }
 
@@ -214,25 +472,36 @@ function silverman(arr) {
   let sum = 0, sumSq = 0;
   for (const x of arr) { sum += x; sumSq += x * x; }
   const mu = sum / n;
-  const s = Math.sqrt(sumSq / n - mu * mu);
+  const s  = Math.sqrt(sumSq / n - mu * mu);
   const sorted = [...arr].sort((a, b) => a - b);
-  const iqr = (quantile(sorted, 0.75) - quantile(sorted, 0.25)) / 1.34;
+  const iqr    = (quantile(sorted, 0.75) - quantile(sorted, 0.25)) / 1.34;
   return 1.06 * (Math.min(s, iqr) || s || 1) * Math.pow(n, -0.2);
 }
 
 function computeKDE(data, bw, nPts = 150) {
   return Array.from({ length: nPts }, (_, i) => {
-    const x = (i / (nPts - 1)) * 100;
+    const x = axisMin + (i / (nPts - 1)) * (axisMax - axisMin);
     const y = data.reduce((s, xi) => s + gaussK((x - xi) / bw), 0) / (data.length * bw);
     return { x, y };
   });
+}
+
+function niceAxisTicks(min, max, targetCount = 6) {
+  const range      = max - min;
+  const roughStep  = range / targetCount;
+  const mag        = Math.pow(10, Math.floor(Math.log10(roughStep)));
+  const step       = [1, 2, 2.5, 5, 10].map(p => p * mag).find(s => s >= roughStep) || mag * 10;
+  const start      = Math.ceil(min / step) * step;
+  const ticks      = [];
+  for (let t = start; t <= max + step * 0.01; t += step)
+    ticks.push(parseFloat(t.toPrecision(10)));
+  return ticks;
 }
 
 // ══════════════════════════════════════════════════════
 //  KDE CHART
 // ══════════════════════════════════════════════════════
 
-// Custom plugin: vertical lines
 Chart.register({
   id: 'vlines',
   afterDraw(chart) {
@@ -260,8 +529,8 @@ let kdeChart = null;
 
 function initKDEChart(kdeData, dist) {
   if (kdeChart) { kdeChart.destroy(); kdeChart = null; }
-  const ctx = document.getElementById('kdeCanvas').getContext('2d');
-  const rgba = dist.color + '40';
+  const ctx  = document.getElementById('kdeCanvas').getContext('2d');
+  const rgba = dist.color + '33';
 
   kdeChart = new Chart(ctx, {
     type: 'line',
@@ -286,7 +555,7 @@ function initKDEChart(kdeData, dist) {
       },
       scales: {
         x: {
-          type: 'linear', min: 0, max: 100,
+          type: 'linear', min: axisMin, max: axisMax,
           title: { display: true, text: 'Value', font: { size: 10 } },
           ticks: { maxTicksLimit: 11, font: { size: 10 } }
         },
@@ -304,16 +573,16 @@ function updateKDELines(step, stats) {
   if (!kdeChart) return;
   const lines = [];
   if (step >= 1) {
-    lines.push({ x: stats.q1,  color: '#3498db', label: `Q1`, dash: [5, 3] });
-    lines.push({ x: stats.med, color: '#e74c3c', label: `Q2`, dash: [5, 3] });
-    lines.push({ x: stats.q3,  color: '#3498db', label: `Q3`, dash: [5, 3] });
+    lines.push({ x: stats.q1,  color: '#2980b9', label: 'Q1', dash: [5, 3] });
+    lines.push({ x: stats.med, color: '#c0392b', label: 'Q2', dash: [5, 3] });
+    lines.push({ x: stats.q3,  color: '#2980b9', label: 'Q3', dash: [5, 3] });
   }
   if (step >= 5) {
-    lines.push({ x: stats.actualLo, color: '#a0aec0', label: ``, dash: [3, 4] });
-    lines.push({ x: stats.actualHi, color: '#a0aec0', label: ``, dash: [3, 4] });
+    lines.push({ x: stats.actualLo, color: '#a0aec0', label: '', dash: [3, 4] });
+    lines.push({ x: stats.actualHi, color: '#a0aec0', label: '', dash: [3, 4] });
   }
   const note = step >= 1
-    ? `— Q1 ${stats.q1.toFixed(1)}  Median ${stats.med.toFixed(1)}  Q3 ${stats.q3.toFixed(1)}`
+    ? `— Q1 ${stats.q1.toFixed(1)}  Q2 ${stats.med.toFixed(1)}  Q3 ${stats.q3.toFixed(1)}`
     : '';
   document.getElementById('kdeStepNote').textContent = note;
   kdeChart.options.plugins.vlines.lines = lines;
@@ -328,25 +597,24 @@ const DOT_CY    = 44;
 const DOT_RANGE = 16;
 const BOX_CY    = 130;
 const BOX_H     = 34;
-const IQR_Y     = 103;   // IQR annotation y
+const IQR_Y     = 103;
 const AX_Y      = 168;
 const PAD_L     = 54;
 const PAD_R     = 28;
 
 function makeScale(W) {
-  return v => PAD_L + (v / 100) * (W - PAD_L - PAD_R);
+  const range = axisMax - axisMin;
+  return v => PAD_L + ((v - axisMin) / range) * (W - PAD_L - PAD_R);
 }
-
-// ── individual drawing functions ─────────────────────
 
 function drawAxis(ctx, W) {
   const sc = makeScale(W);
-  ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+  ctx.strokeStyle = '#d1d9e6'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(PAD_L, AX_Y); ctx.lineTo(W - PAD_R, AX_Y); ctx.stroke();
-  ctx.fillStyle = '#a0aec0'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
-  [0, 20, 40, 60, 80, 100].forEach(v => {
+  ctx.fillStyle = '#718096'; ctx.font = '10px system-ui'; ctx.textAlign = 'center';
+  niceAxisTicks(axisMin, axisMax).forEach(v => {
     const x = sc(v);
-    ctx.strokeStyle = '#e2e8f0';
+    ctx.strokeStyle = '#d1d9e6';
     ctx.beginPath(); ctx.moveTo(x, AX_Y); ctx.lineTo(x, AX_Y + 4); ctx.stroke();
     ctx.fillText(v, x, AX_Y + 14);
   });
@@ -356,7 +624,7 @@ function drawDots(ctx, W, data, stats, step) {
   const sc = makeScale(W);
   const { raw, jitter } = data;
   const { q1, med, q3 } = stats;
-  const MAX = 250;
+  const MAX    = 250;
   const stride = Math.max(1, Math.floor(raw.length / MAX));
 
   raw.forEach((v, i) => {
@@ -364,12 +632,12 @@ function drawDots(ctx, W, data, stats, step) {
     const x = sc(v), y = DOT_CY + jitter[i];
     let color;
     if (step >= 1) {
-      color = v < q1  ? 'rgba(52,152,219,.75)'
-            : v < med ? 'rgba(39,174,96,.75)'
-            : v < q3  ? 'rgba(243,156,18,.75)'
-            :            'rgba(231,76,60,.75)';
+      color = v < q1  ? 'rgba(41,128,185,.78)'
+            : v < med ? 'rgba(26,122,74,.78)'
+            : v < q3  ? 'rgba(180,83,9,.78)'
+            :            'rgba(192,57,43,.78)';
     } else {
-      color = 'rgba(160,174,192,.55)';
+      color = 'rgba(113,128,150,.55)';
     }
     ctx.fillStyle = color;
     ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill();
@@ -380,9 +648,9 @@ function drawQuartileMarkers(ctx, W, stats, p) {
   const sc = makeScale(W);
   ctx.globalAlpha = p;
   const marks = [
-    [stats.q1,  '#3498db', `Q1 = ${stats.q1.toFixed(1)}`],
-    [stats.med, '#e74c3c', `Q2 = ${stats.med.toFixed(1)}`],
-    [stats.q3,  '#3498db', `Q3 = ${stats.q3.toFixed(1)}`],
+    [stats.q1,  '#2980b9', `Q1 = ${stats.q1.toFixed(1)}`],
+    [stats.med, '#c0392b', `Q2 = ${stats.med.toFixed(1)}`],
+    [stats.q3,  '#2980b9', `Q3 = ${stats.q3.toFixed(1)}`],
   ];
   marks.forEach(([v, color, label]) => {
     const x = sc(v);
@@ -399,7 +667,7 @@ function drawMedianLine(ctx, W, stats, p) {
   const sc = makeScale(W);
   ctx.globalAlpha = p;
   const x = sc(stats.med);
-  ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 3;
+  ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(x, BOX_CY - BOX_H / 2); ctx.lineTo(x, BOX_CY + BOX_H / 2); ctx.stroke();
   ctx.globalAlpha = 1;
 }
@@ -408,18 +676,16 @@ function drawBox(ctx, W, stats, p) {
   const sc = makeScale(W);
   const { q1, med, q3 } = stats;
   const medX = sc(med), q1X = sc(q1), q3X = sc(q3);
-  // Grows outward from median
   const lx = medX - (medX - q1X) * p;
   const rx = medX + (q3X - medX) * p;
 
-  ctx.fillStyle = 'rgba(67,97,238,.18)';
-  ctx.strokeStyle = '#4361ee'; ctx.lineWidth = 2;
+  ctx.fillStyle = 'rgba(59,91,219,.14)';
+  ctx.strokeStyle = '#3b5bdb'; ctx.lineWidth = 2;
   ctx.beginPath();
   if (ctx.roundRect) ctx.roundRect(lx, BOX_CY - BOX_H / 2, rx - lx, BOX_H, 3);
   else ctx.rect(lx, BOX_CY - BOX_H / 2, rx - lx, BOX_H);
   ctx.fill(); ctx.stroke();
-  // Keep median line visible on top
-  ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = 3;
+  ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 3;
   ctx.beginPath(); ctx.moveTo(medX, BOX_CY - BOX_H / 2); ctx.lineTo(medX, BOX_CY + BOX_H / 2); ctx.stroke();
 }
 
@@ -430,20 +696,18 @@ function drawIQRAnnotation(ctx, W, stats, p) {
   const q1X = sc(q1), q3X = sc(q3), midX = (q1X + q3X) / 2;
   const ay = IQR_Y;
 
-  // Bracket arms
-  ctx.strokeStyle = '#27ae60'; ctx.lineWidth = 1.5;
+  ctx.strokeStyle = '#1a7a4a'; ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(q1X, ay + 5); ctx.lineTo(q1X, ay);
   ctx.lineTo(q3X, ay);     ctx.lineTo(q3X, ay + 5);
   ctx.stroke();
-  // Arrow heads on horizontal line
   [[q1X, 1], [q3X, -1]].forEach(([x, d]) => {
     ctx.beginPath();
     ctx.moveTo(x, ay); ctx.lineTo(x + d * 7, ay - 4);
     ctx.moveTo(x, ay); ctx.lineTo(x + d * 7, ay + 4);
     ctx.stroke();
   });
-  ctx.fillStyle = '#27ae60'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center';
+  ctx.fillStyle = '#1a7a4a'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center';
   ctx.fillText(`IQR = ${iqr.toFixed(2)}`, midX, ay - 6);
   ctx.globalAlpha = 1;
 }
@@ -453,24 +717,22 @@ function drawWhiskers(ctx, W, stats, p) {
   const { q1, q3, actualLo, actualHi } = stats;
   const q1X = sc(q1), q3X = sc(q3);
   const loX = sc(actualLo), hiX = sc(actualHi);
-  // Extend from box edges outward with progress
   const leftEnd  = q1X - (q1X - loX) * p;
   const rightEnd = q3X + (hiX - q3X) * p;
 
-  ctx.strokeStyle = '#4361ee'; ctx.lineWidth = 2;
+  ctx.strokeStyle = '#3b5bdb'; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(q1X, BOX_CY); ctx.lineTo(leftEnd, BOX_CY); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(q3X, BOX_CY); ctx.lineTo(rightEnd, BOX_CY); ctx.stroke();
 
-  // Caps + labels fade in at the end
   const capP = Math.max(0, (p - 0.75) / 0.25);
   if (capP > 0) {
     ctx.globalAlpha = capP;
     const CAP = 13;
     [loX, hiX].forEach(x => {
-      ctx.strokeStyle = '#4361ee'; ctx.lineWidth = 2;
+      ctx.strokeStyle = '#3b5bdb'; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(x, BOX_CY - CAP / 2); ctx.lineTo(x, BOX_CY + CAP / 2); ctx.stroke();
     });
-    ctx.fillStyle = '#4361ee'; ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'center';
+    ctx.fillStyle = '#3b5bdb'; ctx.font = 'bold 9px system-ui'; ctx.textAlign = 'center';
     ctx.fillText(actualLo.toFixed(1), loX, AX_Y + 24);
     ctx.fillText(actualHi.toFixed(1), hiX, AX_Y + 24);
     ctx.globalAlpha = 1;
@@ -480,46 +742,41 @@ function drawWhiskers(ctx, W, stats, p) {
 function drawOutliers(ctx, W, data, stats, p) {
   const sc = makeScale(W);
   ctx.globalAlpha = p;
-  ctx.fillStyle = '#e53e3e';
   stats.outliers.forEach(v => {
     const x = sc(v);
+    ctx.fillStyle = '#c0392b';
     ctx.beginPath(); ctx.arc(x, BOX_CY, 4.5, 0, Math.PI * 2); ctx.fill();
-    // Stroke ring
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.arc(x, BOX_CY, 4.5, 0, Math.PI * 2); ctx.stroke();
   });
   ctx.globalAlpha = 1;
 }
 
-// ── main draw function ───────────────────────────────
-
-function p(current, target) {
-  // progress for element at `target` step, given we're animating to `current`
+function prog(current, target) {
   return current > target ? 1 : current === target ? animProgress : 0;
 }
 
 let animProgress = 1;
-let animRAF = null;
+let animRAF      = null;
 
 function drawBoxPlot(step) {
   const canvas = document.getElementById('boxCanvas');
   canvas.width = canvas.offsetWidth || 640;
-  const W = canvas.width, H = canvas.height;
+  const W = canvas.width;
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, W, H);
+  ctx.clearRect(0, 0, W, canvas.height);
 
   if (!currentData) return;
   const { stats } = currentData;
 
   drawAxis(ctx, W);
   drawDots(ctx, W, currentData, stats, step);
-
-  if (step >= 1) drawQuartileMarkers(ctx, W, stats, p(step, 1));
-  if (step >= 2) drawMedianLine(ctx, W, stats, p(step, 2));
-  if (step >= 3) drawBox(ctx, W, stats, p(step, 3));
-  if (step >= 4) drawIQRAnnotation(ctx, W, stats, p(step, 4));
-  if (step >= 5) drawWhiskers(ctx, W, stats, p(step, 5));
-  if (step >= 6) drawOutliers(ctx, W, currentData, stats, p(step, 6));
+  if (step >= 1) drawQuartileMarkers(ctx, W, stats, prog(step, 1));
+  if (step >= 2) drawMedianLine(ctx, W, stats, prog(step, 2));
+  if (step >= 3) drawBox(ctx, W, stats, prog(step, 3));
+  if (step >= 4) drawIQRAnnotation(ctx, W, stats, prog(step, 4));
+  if (step >= 5) drawWhiskers(ctx, W, stats, prog(step, 5));
+  if (step >= 6) drawOutliers(ctx, W, currentData, stats, prog(step, 6));
 }
 
 // ══════════════════════════════════════════════════════
@@ -530,16 +787,9 @@ function easeInOut(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
 
 function animateStep(newStep, instant) {
   if (animRAF) { cancelAnimationFrame(animRAF); animRAF = null; }
-
-  if (instant) {
-    animProgress = 1;
-    drawBoxPlot(newStep);
-    return;
-  }
-
-  const start = performance.now();
+  if (instant) { animProgress = 1; drawBoxPlot(newStep); return; }
+  const start    = performance.now();
   const DURATION = 620;
-
   function tick(now) {
     animProgress = easeInOut(Math.min(1, (now - start) / DURATION));
     drawBoxPlot(newStep);
@@ -553,99 +803,32 @@ function animateStep(newStep, instant) {
 //  STEP INFO PANEL
 // ══════════════════════════════════════════════════════
 
-const STEP_DATA = (stats, n, distName) => [
-  {
-    icon: '📊', title: 'Raw Data',
-    body: `<strong>${n}</strong> values sampled from a <strong>${distName}</strong> distribution. The KDE above shows their shape. Click <em>Next</em> to start building the box plot.`,
-    values: []
-  },
-  {
-    icon: '📐', title: 'Step 1 — Quartiles',
-    body: `Sort all <strong>${n}</strong> values. Find the three cut points that divide the data into four equal groups (each holding 25% of the data).`,
-    values: [
-      { label: 'Q1 — 25th percentile', val: stats.q1.toFixed(3), color: '#3498db' },
-      { label: 'Q2 — Median (50th)',    val: stats.med.toFixed(3), color: '#e74c3c' },
-      { label: 'Q3 — 75th percentile', val: stats.q3.toFixed(3), color: '#3498db' },
-    ]
-  },
-  {
-    icon: '✂️', title: 'Step 2 — Median',
-    body: `The <strong>median (Q2)</strong> is the first element drawn. It marks the exact centre of the data. Unlike the mean, it is not pulled by extreme values.`,
-    values: [
-      { label: 'Median = Q2', val: stats.med.toFixed(3), color: '#e74c3c' },
-      { label: '50% of data is below', val: '←', color: '#e74c3c' },
-      { label: '50% of data is above', val: '→', color: '#e74c3c' },
-    ]
-  },
-  {
-    icon: '▭', title: 'Step 3 — The Box',
-    body: `The box grows outward from the median to <strong>Q1</strong> (left) and <strong>Q3</strong> (right), enclosing the middle <strong>50%</strong> of all data points.`,
-    values: [
-      { label: 'Left edge = Q1',  val: stats.q1.toFixed(3), color: '#4361ee' },
-      { label: 'Right edge = Q3', val: stats.q3.toFixed(3), color: '#4361ee' },
-    ]
-  },
-  {
-    icon: '↔', title: 'Step 4 — IQR',
-    body: `The <strong>Interquartile Range</strong> measures how spread out the middle 50% is. Whiskers will reach <strong>1.5 × IQR</strong> beyond each box edge — anything further is an outlier.`,
-    values: [
-      { label: 'IQR = Q3 − Q1', val: `${stats.q3.toFixed(1)} − ${stats.q1.toFixed(1)} = ${stats.iqr.toFixed(3)}`, color: '#27ae60' },
-      { label: '1.5 × IQR',     val: (1.5 * stats.iqr).toFixed(3), color: '#27ae60' },
-    ]
-  },
-  {
-    icon: '⊢⊣', title: 'Step 5 — Whiskers',
-    body: `Whiskers extend from the box edges to the <strong>most extreme data point</strong> that still falls within the 1.5×IQR fence. Nothing beyond.`,
-    values: [
-      { label: 'Lower fence',   val: stats.fLo.toFixed(2), color: '#a0aec0' },
-      { label: '← Whisker end', val: stats.actualLo.toFixed(3), color: '#4361ee' },
-      { label: 'Upper fence',   val: stats.fHi.toFixed(2), color: '#a0aec0' },
-      { label: 'Whisker end →', val: stats.actualHi.toFixed(3), color: '#4361ee' },
-    ]
-  },
-  {
-    icon: '•', title: 'Step 6 — Outliers',
-    body: `Values that fall <strong>beyond the whisker fences</strong> are outliers — plotted as individual dots. They may be rare events, or hints of a non-normal tail.`,
-    values: [
-      { label: 'Outlier count',   val: `${stats.outliers.length} point${stats.outliers.length !== 1 ? 's' : ''}`, color: '#e53e3e' },
-      ...(stats.outliers.length > 0 ? [{
-        label: 'Outlier range',
-        val: `${Math.min(...stats.outliers).toFixed(1)} – ${Math.max(...stats.outliers).toFixed(1)}`,
-        color: '#e53e3e'
-      }] : [{ label: 'No outliers found', val: '✓', color: '#27ae60' }])
-    ]
-  }
-];
-
 function updateStepPanel(step, stats, n, distName) {
-  const info = STEP_DATA(stats, n, distName)[step];
+  const info = tx().steps(stats, n, distName)[step];
 
   document.getElementById('stepIcon').textContent  = info.icon;
   document.getElementById('stepTitle').textContent = info.title;
   document.getElementById('stepBody').innerHTML    = info.body;
 
-  const valEl = document.getElementById('stepValues');
-  valEl.innerHTML = info.values.map(v => `
+  document.getElementById('stepValues').innerHTML = info.values.map(v => `
     <div class="step-val-row">
       <span class="step-val-label">${v.label}</span>
       <span class="step-val-val" style="color:${v.color}">${v.val}</span>
     </div>`).join('');
 
-  // Dots
   const dotsEl = document.getElementById('stepDots');
   dotsEl.innerHTML = Array.from({ length: 7 }, (_, i) => {
     const cls = i < step ? 'done' : i === step ? 'active' : '';
     return `<div class="step-dot ${cls}">${i}</div>`;
   }).join('');
 
-  document.getElementById('stepCounter').textContent = `Step ${step} of 6`;
+  document.getElementById('stepCounter').textContent = tx().stepOf(step);
   document.getElementById('btnPrev').disabled = step === 0;
   document.getElementById('btnNext').disabled = step === 6;
 
-  // Box title
-  const titles = ['', 'Quartile Markers', 'Median Line', 'Box (IQR)', 'IQR Annotation', 'Whiskers', 'Outliers'];
+  const bt = tx().buildTitles;
   document.getElementById('boxTitle').textContent =
-    step === 0 ? 'Box Plot — click Next to begin' : `Building: ${titles.slice(1, step + 1).join(' + ')}`;
+    step === 0 ? tx().boxInit : `${tx().buildPrefix}${bt.slice(1, step + 1).join(' + ')}`;
 }
 
 // ══════════════════════════════════════════════════════
@@ -655,11 +838,19 @@ function updateStepPanel(step, stats, n, distName) {
 let currentDist = DISTS[0];
 let currentData = null;
 let currentStep = 0;
+let axisMin = 0, axisMax = 100;
+
+// File mode state
+let fileMode    = false;
+let fileDataset = null;
+let fileCol     = null;
+let fileName    = '';
 
 function handleGenerate() {
   const n = parseInt(document.getElementById('nSlider').value, 10);
-  currentData = generateData(n, currentDist);
-  currentStep = 0;
+  axisMin = 0; axisMax = 100;
+  currentData  = generateData(n, currentDist);
+  currentStep  = 0;
   animProgress = 1;
 
   const bw  = silverman(currentData.raw);
@@ -667,7 +858,7 @@ function handleGenerate() {
   initKDEChart(kde, currentDist);
   updateKDELines(0, currentData.stats);
   drawBoxPlot(0);
-  updateStepPanel(0, currentData.stats, n, currentDist.name);
+  updateStepPanel(0, currentData.stats, n, tx().dists[currentDist.id][0]);
 
   document.getElementById('btnNext').disabled = false;
   document.getElementById('btnPrev').disabled = true;
@@ -679,16 +870,16 @@ function handleNext() {
   updateKDELines(currentStep, currentData.stats);
   animateStep(currentStep, false);
   const n = parseInt(document.getElementById('nSlider').value, 10);
-  updateStepPanel(currentStep, currentData.stats, n, currentDist.name);
+  updateStepPanel(currentStep, currentData.stats, n, tx().dists[currentDist.id][0]);
 }
 
 function handlePrev() {
   if (!currentData || currentStep <= 0) return;
   currentStep--;
   updateKDELines(currentStep, currentData.stats);
-  animateStep(currentStep, true);   // instant going back
+  animateStep(currentStep, true);
   const n = parseInt(document.getElementById('nSlider').value, 10);
-  updateStepPanel(currentStep, currentData.stats, n, currentDist.name);
+  updateStepPanel(currentStep, currentData.stats, n, tx().dists[currentDist.id][0]);
 }
 
 // ══════════════════════════════════════════════════════
@@ -699,36 +890,167 @@ function hexToRgb(h) { return [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)
 
 function renderDistPicker() {
   const el = document.getElementById('distPicker');
+  el.innerHTML = '';
   DISTS.forEach(d => {
+    const [name, shape] = tx().dists[d.id];
     const card = document.createElement('div');
     card.className = 'dist-card' + (d === currentDist ? ' active' : '');
     card.style.setProperty('--dc',    d.color);
-    card.style.setProperty('--dc-bg', `rgba(${hexToRgb(d.color)},.1)`);
-    card.innerHTML = `<div class="dc-name">${d.name}</div><div class="dc-shape">${d.shape}</div>`;
+    card.style.setProperty('--dc-bg', `rgba(${hexToRgb(d.color)},.10)`);
+    card.innerHTML = `<div class="dc-name">${name}</div><div class="dc-shape">${shape}</div>`;
     card.addEventListener('click', () => {
       document.querySelectorAll('.dist-card').forEach(c => c.classList.remove('active'));
       card.classList.add('active');
       currentDist = d;
+      handleGenerate();
     });
     el.appendChild(card);
   });
 }
 
 // ══════════════════════════════════════════════════════
+//  FILE LOADING
+// ══════════════════════════════════════════════════════
+
+function parseCSV(text) {
+  const lines   = text.trim().split(/\r?\n/);
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const rows    = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = lines[i].split(',');
+    const row  = {};
+    headers.forEach((h, j) => { row[h] = parseFloat(vals[j]); });
+    rows.push(row);
+  }
+  return { headers, rows };
+}
+
+function loadCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  fileName = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fileDataset = parseCSV(e.target.result);
+    // Auto-select first numeric column
+    const numeric = fileDataset.headers.filter(h =>
+      fileDataset.rows.slice(0, 10).some(r => isFinite(r[h]) && !isNaN(r[h]))
+    );
+    fileCol = numeric[0] || fileDataset.headers[0];
+    // Populate column picker
+    document.getElementById('colSelect').innerHTML =
+      fileDataset.headers.map(h => `<option value="${h}">${h}</option>`).join('');
+    document.getElementById('colSelect').value = fileCol;
+    document.getElementById('colPickerWrap').style.display =
+      fileDataset.headers.length > 1 ? 'flex' : 'none';
+    // Show tag
+    updateDatasetTag();
+    document.getElementById('datasetTag').style.display = 'flex';
+    // Switch to file mode
+    fileMode = true;
+    dimControls(true);
+    applyFileData();
+    input.value = '';  // allow re-loading same file
+  };
+  reader.readAsText(file);
+}
+
+function setCol(col) {
+  fileCol = col;
+  updateDatasetTag();
+  applyFileData();
+}
+
+function updateDatasetTag() {
+  const count = fileDataset.rows.filter(r => isFinite(r[fileCol]) && !isNaN(r[fileCol])).length;
+  document.getElementById('datasetName').textContent = `${fileName} · ${count} ${tx().rows}`;
+}
+
+function applyFileData() {
+  const raw = fileDataset.rows.map(r => r[fileCol]).filter(v => isFinite(v) && !isNaN(v));
+  if (raw.length < 5) return;
+  // Set axis range with 5% padding around data
+  const dMin = Math.min(...raw), dMax = Math.max(...raw);
+  const pad  = (dMax - dMin) * 0.05 || 1;
+  axisMin = dMin - pad;
+  axisMax = dMax + pad;
+  const sorted = [...raw].sort((a, b) => a - b);
+  const jitter = raw.map((_, i) => seededJitter(i, 16));
+  const stats  = computeBoxStats(sorted);
+  currentData  = { raw, sorted, jitter, stats };
+  currentStep  = 0;
+  animProgress = 1;
+  const bw  = silverman(raw);
+  const kde = computeKDE(raw, bw);
+  initKDEChart(kde, { color: '#3b5bdb' });
+  updateKDELines(0, stats);
+  drawBoxPlot(0);
+  updateStepPanel(0, stats, raw.length, fileCol);
+}
+
+function clearDataset() {
+  fileMode    = false;
+  fileDataset = null;
+  fileCol     = null;
+  fileName    = '';
+  document.getElementById('datasetTag').style.display = 'none';
+  document.getElementById('csvInput').value = '';
+  dimControls(false);
+  handleGenerate();
+}
+
+function dimControls(dim) {
+  document.getElementById('distPicker').classList.toggle('dimmed', dim);
+  document.querySelector('.n-row').classList.toggle('dimmed', dim);
+}
+
+// ══════════════════════════════════════════════════════
+//  LANGUAGE TOGGLE
+// ══════════════════════════════════════════════════════
+
+function toggleLang() {
+  lang = lang === 'en' ? 'he' : 'en';
+  applyTranslations();
+}
+
+function applyTranslations() {
+  const t = tx();
+  const isHe = lang === 'he';
+  document.documentElement.lang = lang;
+  document.documentElement.dir  = isHe ? 'rtl' : 'ltr';
+
+  document.getElementById('langBtn').textContent        = t.langToggle;
+  document.getElementById('hdrSubtitle').textContent    = t.subtitle;
+  document.getElementById('hdrTagline').innerHTML       = t.tagline.replace('\n', '<br>');
+  document.getElementById('nLabel').textContent         = t.nLabel;
+  document.getElementById('btnPrev').textContent        = t.btnBack;
+  document.getElementById('btnNext').textContent        = t.btnNext;
+  document.getElementById('kdeTitleText').textContent   = t.kdeTitle;
+  document.getElementById('loadBtn').textContent        = t.btnLoad;
+  document.getElementById('colLabel').textContent       = t.colLabel;
+
+  renderDistPicker();
+
+  if (currentData) {
+    const n        = fileMode ? currentData.raw.length : parseInt(document.getElementById('nSlider').value, 10);
+    const distName = fileMode ? fileCol : t.dists[currentDist.id][0];
+    updateStepPanel(currentStep, currentData.stats, n, distName);
+  } else {
+    document.getElementById('stepIcon').textContent  = t.stepInitIcon;
+    document.getElementById('stepTitle').textContent = t.stepInitTitle;
+    document.getElementById('stepBody').innerHTML    = `<div class="no-data-msg">${t.noData}</div>`;
+    document.getElementById('stepCounter').textContent = '—';
+    document.getElementById('boxTitle').textContent  = t.boxInit;
+  }
+}
+
+// ══════════════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════════════
 
-renderDistPicker();
-// Render empty box canvas immediately
-(function () {
-  const canvas = document.getElementById('boxCanvas');
-  canvas.width = canvas.offsetWidth || 640;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#f0f4f8';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = '#a0aec0'; ctx.font = '13px system-ui'; ctx.textAlign = 'center';
-  ctx.fillText('Generate a sample to begin', canvas.width / 2, canvas.height / 2);
-})();
+applyTranslations();
+handleGenerate();
 </script>
 </body>
 </html>

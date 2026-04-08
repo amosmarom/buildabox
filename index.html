@@ -36,6 +36,7 @@
       letter-spacing: .01em;
     }
     .lang-btn:hover { background: rgba(255,255,255,.32); }
+    .header-version { font-size: .68rem; opacity: .65; margin-top: 3px; letter-spacing: .01em; }
 
     .page { max-width: 1280px; margin: 0 auto; padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
 
@@ -154,6 +155,8 @@
       font-size: .9rem; font-weight: 700; padding: 0 .1rem; line-height: 1; transition: color .15s;
     }
     .clear-btn:hover { color: #c0392b; }
+    .zero-filter { display: flex; align-items: center; gap: .28rem; cursor: pointer; color: var(--muted); font-weight: 500; font-size: .76rem; white-space: nowrap; }
+    .zero-filter input[type=checkbox] { cursor: pointer; accent-color: var(--primary); width: 13px; height: 13px; }
     .dist-row.dimmed, .n-row.dimmed { opacity: .4; pointer-events: none; user-select: none; }
   </style>
 </head>
@@ -163,6 +166,7 @@
   <div>
     <h1>BuildABox</h1>
     <div class="header-subtitle" id="hdrSubtitle"></div>
+    <div class="header-version">v1.2 &nbsp;·&nbsp; 2026-04-08</div>
   </div>
   <div class="header-right">
     <button class="lang-btn" id="langBtn" onclick="toggleLang()"></button>
@@ -189,6 +193,10 @@
           <span id="colLabel"></span>
           <select class="col-select" id="colSelect" onchange="setCol(this.value)"></select>
         </span>
+        <label class="zero-filter">
+          <input type="checkbox" id="removeZerosChk" onchange="toggleRemoveZeros()">
+          <span id="removeZerosLabel"></span>
+        </label>
         <button class="clear-btn" onclick="clearDataset()">✕</button>
       </div>
     </div>
@@ -202,7 +210,7 @@
       </div>
       <div class="card">
         <div class="card-title" id="boxTitle"></div>
-        <canvas id="boxCanvas" height="210"></canvas>
+        <canvas id="boxCanvas" height="270"></canvas>
       </div>
     </div>
 
@@ -236,6 +244,7 @@ const T = {
     btnLoad:      '📂 Load CSV',
     colLabel:     'Column:',
     rows:         'rows',
+    removeZeros:  'Remove zeros',
     kdeTitle:     'Distribution & KDE',
     boxInit:      'Box Plot — click Next to begin',
     noData:       'Choose a distribution and click <strong>Generate</strong> to begin.',
@@ -325,6 +334,7 @@ const T = {
     btnLoad:      '📂 טען CSV',
     colLabel:     ':עמודה',
     rows:         'שורות',
+    removeZeros:  'הסר אפסים',
     kdeTitle:     'התפלגות ו-KDE',
     boxInit:      'תרשים קופסה — לחץ הבא להתחלה',
     noData:       'בחר התפלגות ולחץ <strong>צור נתונים</strong> להתחלה.',
@@ -422,12 +432,18 @@ function gaussRandom(mu = 0, sigma = 1) {
 const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
 
 const DISTS = [
-  { id: 'normal',  color: '#2980b9', sample: () => clamp(gaussRandom(50, 14), 0, 100) },
-  { id: 'rskew',   color: '#c0392b', sample: () => clamp(100 * (1 - Math.exp(-Math.random() * 2.5)), 0, 100) },
-  { id: 'lskew',   color: '#1a7a4a', sample: () => clamp(100 * Math.exp(-Math.random() * 0.9) * Math.random() + 30, 0, 100) },
-  { id: 'bimodal', color: '#7c3aed', sample: () => clamp(Math.random() < 0.5 ? gaussRandom(28, 10) : gaussRandom(72, 10), 0, 100) },
+  // Normal: no clamp → natural Gaussian tails produce ~0.7% Tukey outliers
+  { id: 'normal',  color: '#2980b9', sample: () => gaussRandom(50, 10) },
+  // Right-Skewed: exponential distribution → heavy right tail, ~5% high outliers naturally
+  { id: 'rskew',   color: '#c0392b', sample: () => 5  + 18 * (-Math.log(Math.max(1e-10, Math.random()))) },
+  // Left-Skewed: mirror exponential → heavy left tail, ~5% low outliers naturally
+  { id: 'lskew',   color: '#1a7a4a', sample: () => 95 - 18 * (-Math.log(Math.max(1e-10, Math.random()))) },
+  // Bimodal: no clamp; IQR spans the gap so Tukey outliers are rare — educational
+  { id: 'bimodal', color: '#7c3aed', sample: () => Math.random() < 0.5 ? gaussRandom(28, 10) : gaussRandom(72, 10) },
+  // Uniform: flat — no Tukey outliers by construction
   { id: 'uniform', color: '#b45309', sample: () => Math.random() * 90 + 5 },
-  { id: 'ushaped', color: '#0e7490', sample: () => clamp(Math.random() < 0.48 ? gaussRandom(15, 10) : gaussRandom(85, 10), 0, 100) }
+  // U-Shaped: no clamp; wide IQR means Tukey outliers are rare — educational
+  { id: 'ushaped', color: '#0e7490', sample: () => Math.random() < 0.48 ? gaussRandom(15, 10) : gaussRandom(85, 10) }
 ];
 
 // ══════════════════════════════════════════════════════
@@ -441,7 +457,7 @@ function seededJitter(i, range) {
 function generateData(n, dist) {
   const raw    = Array.from({ length: n }, dist.sample);
   const sorted = [...raw].sort((a, b) => a - b);
-  const jitter = raw.map((_, i) => seededJitter(i, 16));
+  const jitter = raw.map((_, i) => seededJitter(i, DOT_RANGE));
   const stats  = computeBoxStats(sorted);
   return { raw, sorted, jitter, stats };
 }
@@ -593,14 +609,14 @@ function updateKDELines(step, stats) {
 //  BOX PLOT CANVAS — CONSTANTS
 // ══════════════════════════════════════════════════════
 
-const DOT_CY    = 44;
-const DOT_RANGE = 16;
-const BOX_CY    = 130;
-const BOX_H     = 34;
-const IQR_Y     = 103;
-const AX_Y      = 168;
-const PAD_L     = 54;
-const PAD_R     = 28;
+const DOT_CY    = 76;
+const DOT_RANGE = 44;
+const BOX_CY    = 172;
+const BOX_H     = 52;
+const IQR_Y     = 142;
+const AX_Y      = 225;
+const PAD_L     = 58;
+const PAD_R     = 30;
 
 function makeScale(W) {
   const range = axisMax - axisMin;
@@ -624,7 +640,7 @@ function drawDots(ctx, W, data, stats, step) {
   const sc = makeScale(W);
   const { raw, jitter } = data;
   const { q1, med, q3 } = stats;
-  const MAX    = 250;
+  const MAX    = 1000;
   const stride = Math.max(1, Math.floor(raw.length / MAX));
 
   raw.forEach((v, i) => {
@@ -789,7 +805,7 @@ function animateStep(newStep, instant) {
   if (animRAF) { cancelAnimationFrame(animRAF); animRAF = null; }
   if (instant) { animProgress = 1; drawBoxPlot(newStep); return; }
   const start    = performance.now();
-  const DURATION = 620;
+  const DURATION = 1000;
   function tick(now) {
     animProgress = easeInOut(Math.min(1, (now - start) / DURATION));
     drawBoxPlot(newStep);
@@ -845,6 +861,7 @@ let fileMode    = false;
 let fileDataset = null;
 let fileCol     = null;
 let fileName    = '';
+let removeZeros = false;
 
 function handleGenerate() {
   const n = parseInt(document.getElementById('nSlider').value, 10);
@@ -963,12 +980,21 @@ function setCol(col) {
 }
 
 function updateDatasetTag() {
-  const count = fileDataset.rows.filter(r => isFinite(r[fileCol]) && !isNaN(r[fileCol])).length;
+  const count = fileDataset.rows
+    .filter(r => isFinite(r[fileCol]) && !isNaN(r[fileCol]) && (!removeZeros || r[fileCol] !== 0))
+    .length;
   document.getElementById('datasetName').textContent = `${fileName} · ${count} ${tx().rows}`;
 }
 
+function toggleRemoveZeros() {
+  removeZeros = document.getElementById('removeZerosChk').checked;
+  updateDatasetTag();
+  applyFileData();
+}
+
 function applyFileData() {
-  const raw = fileDataset.rows.map(r => r[fileCol]).filter(v => isFinite(v) && !isNaN(v));
+  const raw = fileDataset.rows.map(r => r[fileCol])
+    .filter(v => isFinite(v) && !isNaN(v) && (!removeZeros || v !== 0));
   if (raw.length < 5) return;
   // Set axis range with 5% padding around data
   const dMin = Math.min(...raw), dMax = Math.max(...raw);
@@ -976,7 +1002,7 @@ function applyFileData() {
   axisMin = dMin - pad;
   axisMax = dMax + pad;
   const sorted = [...raw].sort((a, b) => a - b);
-  const jitter = raw.map((_, i) => seededJitter(i, 16));
+  const jitter = raw.map((_, i) => seededJitter(i, DOT_RANGE));
   const stats  = computeBoxStats(sorted);
   currentData  = { raw, sorted, jitter, stats };
   currentStep  = 0;
@@ -994,6 +1020,8 @@ function clearDataset() {
   fileDataset = null;
   fileCol     = null;
   fileName    = '';
+  removeZeros = false;
+  document.getElementById('removeZerosChk').checked = false;
   document.getElementById('datasetTag').style.display = 'none';
   document.getElementById('csvInput').value = '';
   dimControls(false);
@@ -1029,6 +1057,7 @@ function applyTranslations() {
   document.getElementById('kdeTitleText').textContent   = t.kdeTitle;
   document.getElementById('loadBtn').textContent        = t.btnLoad;
   document.getElementById('colLabel').textContent       = t.colLabel;
+  document.getElementById('removeZerosLabel').textContent = t.removeZeros;
 
   renderDistPicker();
 

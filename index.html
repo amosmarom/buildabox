@@ -166,7 +166,7 @@
   <div>
     <h1>BuildABox</h1>
     <div class="header-subtitle" id="hdrSubtitle"></div>
-    <div class="header-version">v1.2 &nbsp;·&nbsp; 2026-04-08</div>
+    <div class="header-version">v1.3 &nbsp;·&nbsp; 2026-04-13</div>
   </div>
   <div class="header-right">
     <button class="lang-btn" id="langBtn" onclick="toggleLang()"></button>
@@ -179,10 +179,11 @@
     <div class="dist-row" id="distPicker"></div>
     <div class="n-row">
       <label id="nLabel"></label>
-      <input type="range" id="nSlider" min="50" max="1000" step="50" value="200"
+      <input type="range" id="nSlider" min="20" max="1000" step="50" value="200"
         oninput="document.getElementById('nVal').textContent=this.value"
         onchange="handleGenerate()">
       <span class="n-val" id="nVal">200</span>
+      <button class="load-btn" id="regenBtn" onclick="handleRegenerate()" style="padding:.35rem .7rem;font-size:.78rem"></button>
     </div>
     <div class="file-row">
       <button class="load-btn" id="loadBtn" onclick="document.getElementById('csvInput').click()"></button>
@@ -242,6 +243,7 @@ const T = {
     tagline:      'Pick a distribution, generate data,\nthen build the box plot one step at a time',
     nLabel:       'N =',
     btnLoad:      '📂 Load CSV',
+    btnRegen:     '↺ Regenerate',
     colLabel:     'Column:',
     rows:         'rows',
     removeZeros:  'Remove zeros',
@@ -262,7 +264,7 @@ const T = {
       lskew:   ['Left-Skewed',  'Long left tail'],
       bimodal: ['Bimodal',      'Two peaks'],
       uniform: ['Uniform',      'Flat'],
-      ushaped: ['U-Shaped',     'Extremes heavy'],
+      chaotic: ['Chaotic',      'No pattern'],
     },
     steps: (stats, n, distName) => [
       {
@@ -332,6 +334,7 @@ const T = {
     tagline:      'בחר התפלגות, צור נתונים,\nואז בנה את תרשים הקופסה שלב אחר שלב',
     nLabel:       ':N',
     btnLoad:      '📂 טען CSV',
+    btnRegen:     '↺ צור מחדש',
     colLabel:     ':עמודה',
     rows:         'שורות',
     removeZeros:  'הסר אפסים',
@@ -347,12 +350,12 @@ const T = {
     langToggle:   'English',
     buildTitles:  ['', 'סימוני רביעונים', 'קו חציון', 'קופסה (IQR)', 'הערת IQR', 'שפמים', 'ערכים חריגים'],
     dists: {
-      normal:  ['נורמלי',     'עקומת פעמון'],
+      normal:  ['נורמלית',    'עקומת פעמון'],
       rskew:   ['מוטה ימינה', 'זנב ארוך ימינה'],
       lskew:   ['מוטה שמאלה','זנב ארוך שמאלה'],
-      bimodal: ['דו-שיאי',    'שני שיאים'],
-      uniform: ['אחיד',       'שטוח'],
-      ushaped: ['צורת U',     'קצוות כבדים'],
+      bimodal: ['דו-שיאית',   'שני שיאים'],
+      uniform: ['אחידה',      'שטוחה'],
+      chaotic: ['אקראית',     'ללא תבנית'],
     },
     steps: (stats, n, distName) => [
       {
@@ -442,8 +445,16 @@ const DISTS = [
   { id: 'bimodal', color: '#7c3aed', sample: () => Math.random() < 0.5 ? gaussRandom(28, 10) : gaussRandom(72, 10) },
   // Uniform: flat — no Tukey outliers by construction
   { id: 'uniform', color: '#b45309', sample: () => Math.random() * 90 + 5 },
-  // U-Shaped: no clamp; wide IQR means Tukey outliers are rare — educational
-  { id: 'ushaped', color: '#0e7490', sample: () => Math.random() < 0.48 ? gaussRandom(15, 10) : gaussRandom(85, 10) }
+  // Chaotic: irregular mix of many components — no clear pattern
+  { id: 'chaotic', color: '#e84393', sample: () => {
+    const r = Math.random();
+    if (r < 0.18) return gaussRandom(10, 6);
+    if (r < 0.32) return gaussRandom(28, 4);
+    if (r < 0.52) return gaussRandom(48, 11);
+    if (r < 0.63) return gaussRandom(65, 3);
+    if (r < 0.80) return gaussRandom(80, 7);
+    return gaussRandom(92, 4);
+  }}
 ];
 
 // ══════════════════════════════════════════════════════
@@ -543,7 +554,7 @@ Chart.register({
 
 let kdeChart = null;
 
-function initKDEChart(kdeData, dist) {
+function initKDEChart(kdeData, dist, opts = {}) {
   if (kdeChart) { kdeChart.destroy(); kdeChart = null; }
   const ctx  = document.getElementById('kdeCanvas').getContext('2d');
   const rgba = dist.color + '33';
@@ -559,7 +570,7 @@ function initKDEChart(kdeData, dist) {
         backgroundColor: rgba,
         fill: 'origin',
         pointRadius: 0,
-        tension: 0.4
+        tension: opts.tension ?? 0.4
       }]
     },
     options: {
@@ -871,14 +882,27 @@ function handleGenerate() {
   animProgress = 1;
 
   const bw  = silverman(currentData.raw);
-  const kde = computeKDE(currentData.raw, bw);
-  initKDEChart(kde, currentDist);
+  let kde = computeKDE(currentData.raw, bw);
+  let kdeOpts = {};
+  if (currentDist.id === 'uniform') {
+    const uMin = 5, uMax = 95, density = 1 / (uMax - uMin);
+    kde = Array.from({ length: 150 }, (_, i) => {
+      const x = axisMin + (i / 149) * (axisMax - axisMin);
+      return { x, y: (x > uMin && x < uMax) ? density : 0 };
+    });
+    kdeOpts = { tension: 0 };
+  }
+  initKDEChart(kde, currentDist, kdeOpts);
   updateKDELines(0, currentData.stats);
   drawBoxPlot(0);
   updateStepPanel(0, currentData.stats, n, tx().dists[currentDist.id][0]);
 
   document.getElementById('btnNext').disabled = false;
   document.getElementById('btnPrev').disabled = true;
+}
+
+function handleRegenerate() {
+  if (!fileMode) handleGenerate();
 }
 
 function handleNext() {
@@ -1031,6 +1055,7 @@ function clearDataset() {
 function dimControls(dim) {
   document.getElementById('distPicker').classList.toggle('dimmed', dim);
   document.querySelector('.n-row').classList.toggle('dimmed', dim);
+  document.getElementById('regenBtn').disabled = dim;
 }
 
 // ══════════════════════════════════════════════════════
@@ -1056,6 +1081,7 @@ function applyTranslations() {
   document.getElementById('btnNext').textContent        = t.btnNext;
   document.getElementById('kdeTitleText').textContent   = t.kdeTitle;
   document.getElementById('loadBtn').textContent        = t.btnLoad;
+  document.getElementById('regenBtn').textContent       = t.btnRegen;
   document.getElementById('colLabel').textContent       = t.colLabel;
   document.getElementById('removeZerosLabel').textContent = t.removeZeros;
 
@@ -1073,6 +1099,46 @@ function applyTranslations() {
     document.getElementById('boxTitle').textContent  = t.boxInit;
   }
 }
+
+// ══════════════════════════════════════════════════════
+//  DOT TOOLTIP
+// ══════════════════════════════════════════════════════
+
+const dotTooltip = document.createElement('div');
+dotTooltip.style.cssText = 'position:fixed;background:#1a202c;color:#fff;padding:.22rem .55rem;border-radius:5px;font-size:.75rem;font-weight:700;font-family:"Courier New",monospace;pointer-events:none;display:none;z-index:200;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.3)';
+document.body.appendChild(dotTooltip);
+
+document.getElementById('boxCanvas').addEventListener('mousemove', function(e) {
+  if (!currentData) return;
+  const rect   = this.getBoundingClientRect();
+  const mx     = e.clientX - rect.left;
+  const my     = e.clientY - rect.top;
+  const W      = this.width || this.offsetWidth;
+  const sc     = makeScale(W);
+  const { raw, jitter } = currentData;
+  const stride = Math.max(1, Math.floor(raw.length / 1000));
+
+  let best = null, bestDist = Infinity;
+  raw.forEach((v, i) => {
+    if (i % stride !== 0) return;
+    const dx = mx - sc(v), dy = my - (DOT_CY + jitter[i]);
+    const d  = Math.sqrt(dx * dx + dy * dy);
+    if (d < bestDist) { bestDist = d; best = v; }
+  });
+
+  if (best !== null && bestDist < 14) {
+    dotTooltip.textContent  = best.toFixed(2);
+    dotTooltip.style.display = 'block';
+    dotTooltip.style.left   = (e.clientX + 12) + 'px';
+    dotTooltip.style.top    = (e.clientY - 22) + 'px';
+  } else {
+    dotTooltip.style.display = 'none';
+  }
+});
+
+document.getElementById('boxCanvas').addEventListener('mouseleave', () => {
+  dotTooltip.style.display = 'none';
+});
 
 // ══════════════════════════════════════════════════════
 //  INIT

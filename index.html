@@ -159,6 +159,22 @@
     .zero-filter input[type=checkbox] { cursor: pointer; accent-color: var(--primary); width: 13px; height: 13px; }
     .dist-row.dimmed, .n-row.dimmed { opacity: .4; pointer-events: none; user-select: none; }
 
+    /* Mustache animation */
+    @keyframes mustaFly {
+      0%   { transform: translate(-150px, 0)    rotate(-20deg) scale(1);    opacity: 0; }
+      6%   { transform: translate(5vw,  -10px)  rotate(-20deg) scale(1);    opacity: 1; }
+      25%  { transform: translate(25vw, -55px)  rotate(15deg)  scale(1.25); opacity: 1; }
+      50%  { transform: translate(50vw,  40px)  rotate(-12deg) scale(0.8);  opacity: 1; }
+      75%  { transform: translate(75vw, -35px)  rotate(20deg)  scale(1.15); opacity: 1; }
+      94%  { opacity: 1; }
+      100% { transform: translate(110vw, 10px)  rotate(28deg)  scale(1);    opacity: 0; }
+    }
+    .musta-fly {
+      position: fixed; left: 0; top: 42%; font-size: 5rem;
+      pointer-events: none; z-index: 9999; line-height: 1;
+      animation: mustaFly 3s ease-in-out forwards;
+    }
+
     /* Teach-Me mode */
     #teachBtn.active { background: rgba(245,158,11,.35); border-color: rgba(245,158,11,.9); }
     #teachBtn:disabled { opacity: .45; cursor: not-allowed; }
@@ -984,6 +1000,14 @@ function updateTeachBubble(step) {
   svg.innerHTML = `<defs><marker id="tmArr" markerWidth="20" markerHeight="20" refX="18" refY="10" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L20,10 L0,20 Z" fill="#f59e0b"/></marker></defs><line x1="${bcx}" y1="${bcy}" x2="${target.x}" y2="${target.y}" stroke="#f59e0b" stroke-width="6" stroke-dasharray="10,5" marker-end="url(#tmArr)" opacity="0.9"/><circle cx="${target.x}" cy="${target.y}" r="10" fill="rgba(245,158,11,.18)" stroke="#f59e0b" stroke-width="5" opacity="0.95"/>`;
 }
 
+function showMustache() {
+  const el = document.createElement('div');
+  el.className = 'musta-fly';
+  el.textContent = '🥸';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
 function toggleTeach() {
   teachMode = !teachMode;
   document.getElementById('teachBtn').classList.toggle('active', teachMode);
@@ -1026,6 +1050,7 @@ function handleRegenerate() {
 function handleNext() {
   if (!currentData || currentStep >= 6) return;
   currentStep++;
+  if (currentStep === 5) showMustache();
   updateKDELines(currentStep, currentData.stats);
   animateStep(currentStep, false);
   const n = parseInt(document.getElementById('nSlider').value, 10);

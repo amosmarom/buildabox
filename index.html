@@ -170,8 +170,8 @@
       100% { transform: translate(110vw, 10px)  rotate(28deg)  scale(1);    opacity: 0; }
     }
     .musta-fly {
-      position: fixed; left: 0; top: 42%; font-size: 5rem;
-      pointer-events: none; z-index: 9999; line-height: 1;
+      position: fixed; left: 0; top: 42%;
+      pointer-events: none; z-index: 9999;
       animation: mustaFly 3s ease-in-out forwards;
     }
 
@@ -1003,7 +1003,19 @@ function updateTeachBubble(step) {
 function showMustache() {
   const el = document.createElement('div');
   el.className = 'musta-fly';
-  el.textContent = '🥸';
+  el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 90" width="230" height="86">
+    <defs>
+      <filter id="mshadow">
+        <feDropShadow dx="2" dy="4" stdDeviation="5" flood-color="#000" flood-opacity=".45"/>
+      </filter>
+    </defs>
+    <path filter="url(#mshadow)" fill="#1a0800"
+      d="M120,50
+         C105,32 72,24 42,36 C24,42 14,57 20,67
+         C28,77 50,72 67,60 C82,50 100,52 120,57
+         C140,52 158,50 173,60 C190,72 212,77 220,67
+         C226,57 216,42 198,36 C168,24 135,32 120,50 Z"/>
+  </svg>`;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 3200);
 }
@@ -1050,7 +1062,7 @@ function handleRegenerate() {
 function handleNext() {
   if (!currentData || currentStep >= 6) return;
   currentStep++;
-  if (currentStep === 5) showMustache();
+  if (currentStep === 5 && Math.random() < 1/12) showMustache();
   updateKDELines(currentStep, currentData.stats);
   animateStep(currentStep, false);
   const n = parseInt(document.getElementById('nSlider').value, 10);

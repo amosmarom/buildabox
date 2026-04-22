@@ -1062,7 +1062,7 @@ function handleRegenerate() {
 function handleNext() {
   if (!currentData || currentStep >= 6) return;
   currentStep++;
-  if (currentStep === 5 && Math.random() < 1/12) showMustache();
+  if (currentStep === 5 && Math.random() < 1/7) showMustache();
   updateKDELines(currentStep, currentData.stats);
   animateStep(currentStep, false);
   const n = parseInt(document.getElementById('nSlider').value, 10);

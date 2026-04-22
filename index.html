@@ -195,7 +195,7 @@
   <div>
     <h1>BuildABox</h1>
     <div class="header-subtitle" id="hdrSubtitle"></div>
-    <div class="header-version">v1.4 &nbsp;·&nbsp; 2026-04-22</div>
+    <div class="header-version">v1.4 &nbsp;·&nbsp; 2026-04-22 18:40</div>
   </div>
   <div class="header-right">
     <div style="display:flex;gap:.45rem;align-items:center;">
@@ -1062,7 +1062,7 @@ function handleRegenerate() {
 function handleNext() {
   if (!currentData || currentStep >= 6) return;
   currentStep++;
-  if (currentStep === 5 && Math.random() < 1/7) showMustache();
+  if (currentStep === 5) showMustache();
   updateKDELines(currentStep, currentData.stats);
   animateStep(currentStep, false);
   const n = parseInt(document.getElementById('nSlider').value, 10);

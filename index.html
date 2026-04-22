@@ -158,6 +158,19 @@
     .zero-filter { display: flex; align-items: center; gap: .28rem; cursor: pointer; color: var(--muted); font-weight: 500; font-size: .76rem; white-space: nowrap; }
     .zero-filter input[type=checkbox] { cursor: pointer; accent-color: var(--primary); width: 13px; height: 13px; }
     .dist-row.dimmed, .n-row.dimmed { opacity: .4; pointer-events: none; user-select: none; }
+
+    /* Teach-Me mode */
+    #teachBtn.active { background: rgba(245,158,11,.35); border-color: rgba(245,158,11,.9); }
+    #teachBtn:disabled { opacity: .45; cursor: not-allowed; }
+    .box-canvas-wrap { position: relative; line-height: 0; }
+    .teach-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 9; }
+    .teach-bubble {
+      position: absolute; background: #fffbeb; color: #1a202c;
+      border: 2px solid #f59e0b; padding: .72rem .98rem; border-radius: 10px;
+      font-size: .99rem; line-height: 1.58; width: 240px;
+      box-shadow: 0 4px 16px rgba(245,158,11,.3);
+      pointer-events: none; z-index: 10; font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -169,7 +182,10 @@
     <div class="header-version">v1.3 &nbsp;·&nbsp; 2026-04-13</div>
   </div>
   <div class="header-right">
-    <button class="lang-btn" id="langBtn" onclick="toggleLang()"></button>
+    <div style="display:flex;gap:.45rem;align-items:center;">
+      <button class="lang-btn" id="teachBtn" onclick="toggleTeach()" disabled></button>
+      <button class="lang-btn" id="langBtn" onclick="toggleLang()"></button>
+    </div>
     <div class="header-tagline" id="hdrTagline"></div>
   </div>
 </header>
@@ -211,7 +227,11 @@
       </div>
       <div class="card">
         <div class="card-title" id="boxTitle"></div>
-        <canvas id="boxCanvas" height="270"></canvas>
+        <div class="box-canvas-wrap">
+          <canvas id="boxCanvas" height="270"></canvas>
+          <svg id="teachSvg" class="teach-svg" style="display:none"></svg>
+          <div id="teachBubble" class="teach-bubble" style="display:none"></div>
+        </div>
       </div>
     </div>
 
@@ -258,6 +278,16 @@ const T = {
     buildPrefix:  'Building: ',
     langToggle:   'עברית',
     buildTitles:  ['', 'Quartile Markers', 'Median Line', 'Box (IQR)', 'IQR Annotation', 'Whiskers', 'Outliers'],
+    teachBtn: '🎓 Teach Me',
+    teachBubbles: [
+      "These dots are your raw data. Each dot is one value. Hover any dot to see its value.",
+      "Three dashed lines mark Q1 (25th %), Q2 (50th %) and Q3 (75th %) — they split the sorted data into four equal groups.",
+      "The red vertical line is the median — the exact center of the data. Half the values fall on each side.",
+      "The box spans from Q1 to Q3, enclosing the middle 50% of the data. Its width equals the IQR.",
+      "IQR = Q3 − Q1. Fences sit at Q1 − 1.5×IQR and Q3 + 1.5×IQR. Values beyond the fences are outliers.",
+      "Whiskers extend from each box edge to the last data point still within the 1.5×IQR fence — no further.",
+      "Values beyond the fences are outliers — shown as individual red circles. They may be rare events or non-normal tails.",
+    ],
     dists: {
       normal:  ['Normal',       'Bell Curve'],
       rskew:   ['Right-Skewed', 'Long right tail'],
@@ -349,6 +379,16 @@ const T = {
     buildPrefix:  'בבנייה: ',
     langToggle:   'English',
     buildTitles:  ['', 'סימוני רביעונים', 'קו חציון', 'קופסה (IQR)', 'הערת IQR', 'שפמים', 'ערכים חריגים'],
+    teachBtn: '🎓 למד אותי',
+    teachBubbles: [
+      "אלו הנתונים הגולמיים שלך. כל נקודה מייצגת ערך אחד. רחף עליה לראות את ערכה.",
+      "שלושה קווים מקווקווים מסמנים Q1 (25%), Q2 (50%) ו-Q3 (75%) — מחלקים את הנתונים הממוינים לארבע קבוצות שוות.",
+      "הקו האדום הוא החציון — מרכז הנתונים המדויק. מחצית הערכים מתחתיו ומחצית מעליו.",
+      "הקופסה משתרעת מ-Q1 עד Q3 וכוללת את 50% האמצעיים. רוחבה שווה ל-IQR.",
+      "IQR = Q3 − Q1. גדרות: Q1 − 1.5×IQR ו-Q3 + 1.5×IQR. ערכים מחוץ לגדרות הם חריגים.",
+      "השפמים מתארכים מקצות הקופסה עד לנקודת הנתונים הקיצונית ביותר שנמצאת בתוך גדר 1.5×IQR.",
+      "ערכים מחוץ לגדרות השפם הם ערכים חריגים — מסומנים כעיגולים אדומים בודדים.",
+    ],
     dists: {
       normal:  ['נורמלית',    'עקומת פעמון'],
       rskew:   ['מוטה ימינה', 'זנב ארוך ימינה'],
@@ -874,6 +914,82 @@ let fileCol     = null;
 let fileName    = '';
 let removeZeros = false;
 
+// Teach-Me mode
+let teachMode = false;
+
+const TEACH_CONFIGS = [
+  // 0: raw dots — top-right keeps bubble off the densest center region
+  { getTarget: (s,W) => ({x: W*0.45, y: DOT_CY}),
+    pos: 'top-right' },
+  // 1: quartile labels sit at top of canvas; box not yet drawn so bottom-left is safe
+  { getTarget: (s,W) => ({x: (makeScale(W)(s.q1)+makeScale(W)(s.q3))/2, y: DOT_CY-DOT_RANGE-10}),
+    pos: 'bottom-left' },
+  // 2: median line is at center-x; top-left (x=8–248) clears Q labels (x≈295–385)
+  { getTarget: (s,W) => ({x: makeScale(W)(s.med), y: BOX_CY}),
+    pos: 'top-left' },
+  // 3: box center; top-right (x=W-248) also clears Q labels on the other side
+  { getTarget: (s,W) => ({x: (makeScale(W)(s.q1)+makeScale(W)(s.q3))/2, y: BOX_CY}),
+    pos: 'top-right' },
+  // 4: IQR bracket at center-x; top-left clears it
+  { getTarget: (s,W) => ({x: (makeScale(W)(s.q1)+makeScale(W)(s.q3))/2, y: IQR_Y-6}),
+    pos: 'top-left' },
+  // 5: left whisker end; top-right is far from target
+  { getTarget: (s,W) => ({x: makeScale(W)(s.actualLo), y: BOX_CY}),
+    pos: 'top-right' },
+  // 6: outliers — dynamic: if outlier is right-side use top-left, else top-right
+  { getTarget: (s,W) => ({
+      x: s.outliers.length
+        ? makeScale(W)(s.outliers[Math.floor(s.outliers.length/2)])
+        : makeScale(W)(s.actualHi),
+      y: BOX_CY
+    }),
+    getDynPos: (target, W) => target.x > W * 0.5 ? 'top-left' : 'top-right' },
+];
+
+function _bubblePos(posName, W, H, bW, bH) {
+  const p = 8;
+  return ({
+    'top-left':      {x: p,           y: p},
+    'top-center':    {x: (W-bW)/2,    y: p},
+    'top-right':     {x: W-bW-p,      y: p},
+    'bottom-left':   {x: p,           y: H-bH-p},
+    'bottom-center': {x: (W-bW)/2,    y: H-bH-p},
+    'bottom-right':  {x: W-bW-p,      y: H-bH-p},
+  })[posName];
+}
+
+function updateTeachBubble(step) {
+  const svg    = document.getElementById('teachSvg');
+  const bubble = document.getElementById('teachBubble');
+  if (!teachMode || !currentData) {
+    svg.style.display = bubble.style.display = 'none';
+    return;
+  }
+  const canvas = document.getElementById('boxCanvas');
+  const W = canvas.offsetWidth || 640, H = 270;
+  const BW = 240, BH = 104;
+  const cfg    = TEACH_CONFIGS[step];
+  const target = cfg.getTarget(currentData.stats, W);
+  const posName = cfg.getDynPos ? cfg.getDynPos(target, W) : cfg.pos;
+  const bp     = _bubblePos(posName, W, H, BW, BH);
+  const bcx    = bp.x + BW/2, bcy = bp.y + BH/2;
+
+  bubble.textContent = tx().teachBubbles[step];
+  bubble.style.left  = bp.x + 'px';
+  bubble.style.top   = bp.y + 'px';
+  bubble.style.display = 'block';
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.style.display = 'block';
+  svg.innerHTML = `<defs><marker id="tmArr" markerWidth="20" markerHeight="20" refX="18" refY="10" orient="auto" markerUnits="userSpaceOnUse"><path d="M0,0 L20,10 L0,20 Z" fill="#f59e0b"/></marker></defs><line x1="${bcx}" y1="${bcy}" x2="${target.x}" y2="${target.y}" stroke="#f59e0b" stroke-width="6" stroke-dasharray="10,5" marker-end="url(#tmArr)" opacity="0.9"/><circle cx="${target.x}" cy="${target.y}" r="10" fill="rgba(245,158,11,.18)" stroke="#f59e0b" stroke-width="5" opacity="0.95"/>`;
+}
+
+function toggleTeach() {
+  teachMode = !teachMode;
+  document.getElementById('teachBtn').classList.toggle('active', teachMode);
+  updateTeachBubble(currentStep);
+}
+
 function handleGenerate() {
   const n = parseInt(document.getElementById('nSlider').value, 10);
   axisMin = 0; axisMax = 100;
@@ -899,6 +1015,8 @@ function handleGenerate() {
 
   document.getElementById('btnNext').disabled = false;
   document.getElementById('btnPrev').disabled = true;
+  document.getElementById('teachBtn').disabled = false;
+  updateTeachBubble(0);
 }
 
 function handleRegenerate() {
@@ -912,6 +1030,7 @@ function handleNext() {
   animateStep(currentStep, false);
   const n = parseInt(document.getElementById('nSlider').value, 10);
   updateStepPanel(currentStep, currentData.stats, n, tx().dists[currentDist.id][0]);
+  updateTeachBubble(currentStep);
 }
 
 function handlePrev() {
@@ -921,6 +1040,7 @@ function handlePrev() {
   animateStep(currentStep, true);
   const n = parseInt(document.getElementById('nSlider').value, 10);
   updateStepPanel(currentStep, currentData.stats, n, tx().dists[currentDist.id][0]);
+  updateTeachBubble(currentStep);
 }
 
 // ══════════════════════════════════════════════════════
@@ -1037,6 +1157,8 @@ function applyFileData() {
   updateKDELines(0, stats);
   drawBoxPlot(0);
   updateStepPanel(0, stats, raw.length, fileCol);
+  document.getElementById('teachBtn').disabled = false;
+  updateTeachBubble(0);
 }
 
 function clearDataset() {
@@ -1079,6 +1201,7 @@ function applyTranslations() {
   document.getElementById('nLabel').textContent         = t.nLabel;
   document.getElementById('btnPrev').textContent        = t.btnBack;
   document.getElementById('btnNext').textContent        = t.btnNext;
+  document.getElementById('teachBtn').textContent       = t.teachBtn;
   document.getElementById('kdeTitleText').textContent   = t.kdeTitle;
   document.getElementById('loadBtn').textContent        = t.btnLoad;
   document.getElementById('regenBtn').textContent       = t.btnRegen;
@@ -1098,6 +1221,7 @@ function applyTranslations() {
     document.getElementById('stepCounter').textContent = '—';
     document.getElementById('boxTitle').textContent  = t.boxInit;
   }
+  updateTeachBubble(currentStep);
 }
 
 // ══════════════════════════════════════════════════════
